@@ -808,12 +808,24 @@ class FunctionsListForm_t(PluginForm):
         self._update_function_name(data)
         
     def filterByColumn(self, col_num, str):
-        self.addr_sorted_model.setFilterRegExp(QtCore.QRegExp(str, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString));
+        filter_type = QtCore.QRegExp.FixedString
+        sensitivity = QtCore.Qt.CaseInsensitive
+        if self.criterium_id != 0:
+            filter_type = QtCore.QRegExp.RegExp
+        self.addr_sorted_model.setFilterRegExp(QtCore.QRegExp(str, sensitivity, filter_type));
         self.addr_sorted_model.setFilterKeyColumn(col_num)
         
     def filterChanged(self):
         self.filterByColumn(self.filter_combo.currentIndex(), self.filter_edit.text() )
-
+        
+    def criteriumChanged(self):
+        self.criterium_id = self.criterium_combo.currentIndex()
+        if self.criterium_id == 0:
+            self.filter_edit.setPlaceholderText("keyword")
+        else:
+            self.filter_edit.setPlaceholderText("regex")
+        self.filterChanged()
+        
     def OnCreate(self, form):
         """
         Called when the plugin form is created
@@ -823,6 +835,7 @@ class FunctionsListForm_t(PluginForm):
         self.functionsMap = dict()
         self.addr_list = []
         self._loadLocals()
+        self.criterium_id = 0
         
         # Get parent widget
         self.parent = self.FormToPySideWidget(form)
@@ -878,20 +891,27 @@ class FunctionsListForm_t(PluginForm):
         # Create filter
         self.filter_edit = QtGui.QLineEdit()
         self.filter_edit.setPlaceholderText("keyword")
-        self.filter_combo = QtGui.QComboBox()
+        self.filter_edit.textChanged.connect(self.filterChanged)
         
+        self.filter_combo = QtGui.QComboBox()
         self.filter_combo.addItems(TableModel_t.header_names)
         self.filter_combo.setCurrentIndex(TableModel_t.COL_NAME)
         #connect SIGNAL
-        self.filter_edit.textChanged.connect(self.filterChanged)
         self.filter_combo.activated.connect(self.filterChanged)
+        
+        self.criterium_combo = QtGui.QComboBox()
+        criteria = ["contains", "matches"]
+        self.criterium_combo.addItems(criteria)
+        self.criterium_combo.setCurrentIndex(0)
+        #connect SIGNAL
+        self.criterium_combo.activated.connect(self.criteriumChanged)
         
 
         filter_panel = QtGui.QFrame()
         filter_layout = QtGui.QHBoxLayout()
         filter_layout.addWidget(QtGui.QLabel("Where "))
         filter_layout.addWidget(self.filter_combo)
-        filter_layout.addWidget(QtGui.QLabel(" contains: "))
+        filter_layout.addWidget(self.criterium_combo)
         filter_layout.addWidget(self.filter_edit)
         
         filter_panel.setLayout(filter_layout)
@@ -1065,3 +1085,4 @@ class funclister_t(idaapi.plugin_t):
 def PLUGIN_ENTRY():
     return funclister_t()
     
+
