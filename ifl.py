@@ -10,7 +10,7 @@
 """
 (c) hasherezade, 2015 run via IDA Pro 6.8
 """
-__VERSION__ = '1.0'
+__VERSION__ = '1.1'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -636,11 +636,12 @@ class FunctionsListForm_t(PluginForm):
     def _saveFunctionsNames(self, file_name):
         if file_name is None or len(file_name) == 0:
             return False
+        delim = ","
         fn_list = list()
         for func in Functions():
             start = GetFunctionAttr(func, FUNCATTR_START)
             func_name = _getFunctionNameAt(start)
-            line = "%lx : %s" %(start, func_name)
+            line = "%lx%c%s" %(start, delim, func_name)
             fn_list.append(line)   
         idaapi.msg(str(file_name))
         with open(file_name, 'w') as f:
@@ -653,12 +654,15 @@ class FunctionsListForm_t(PluginForm):
         if file_name is None or len(file_name) == 0:
             return False
         curr_functions = self._listFunctionsAddr()
-        delim = ":"
+        delim = "," # new delimiter (for CSV format)
+        delim2 = ":" # old delimiter
         loaded = 0
         with open(file_name, 'r') as f:
             for line in f.readlines():
                 line = line.strip()
                 fn = line.split(delim)
+                if len(fn) != 2:
+                    fn = line.split(delim2) # try old delimiter
                 if len(fn) != 2:
                     continue
                 start = int(fn[0].strip(), 16)
@@ -968,7 +972,7 @@ class FunctionsListForm_t(PluginForm):
         return buttons_panel
         
     def importNames(self):
-        file_name, ext = QtGui.QFileDialog.getOpenFileName( None, "Export functions names", QtCore.QDir.homePath(), "TXT Files (*.txt);;All files (*)")
+        file_name, ext = QtGui.QFileDialog.getOpenFileName( None, "Export functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TXT Files (*.txt);;All files (*)")
         if file_name is not None and len(file_name) > 0 :
             loaded = self._loadFunctionsNames(file_name)
             if loaded == 0:
@@ -977,7 +981,7 @@ class FunctionsListForm_t(PluginForm):
                 idaapi.info("Imported %d function names " % (loaded))
                 
     def exportNames(self):
-        file_name, ext = QtGui.QFileDialog.getSaveFileName( None, "Import functions names", QtCore.QDir.homePath(), "TXT Files (*.txt);;All files (*)")
+        file_name, ext = QtGui.QFileDialog.getSaveFileName( None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv)")
         if file_name is not None and len(file_name) > 0 :
             if self._saveFunctionsNames(file_name) == False:
                 idaapi.warning("Failed exporting functions names!")
@@ -1085,4 +1089,3 @@ class funclister_t(idaapi.plugin_t):
 def PLUGIN_ENTRY():
     return funclister_t()
     
-
