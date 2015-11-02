@@ -10,7 +10,7 @@
 """
 (c) hasherezade, 2015 run via IDA Pro 6.8
 """
-__VERSION__ = '1.1'
+__VERSION__ = '1.2'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -641,7 +641,8 @@ class FunctionsListForm_t(PluginForm):
         for func in Functions():
             start = GetFunctionAttr(func, FUNCATTR_START)
             func_name = _getFunctionNameAt(start)
-            line = "%lx%c%s" %(start, delim, func_name)
+            start_rva = va_to_rva(start)
+            line = "%lx%c%s" %(start_rva, delim, func_name)
             fn_list.append(line)   
         idaapi.msg(str(file_name))
         with open(file_name, 'w') as f:
@@ -667,6 +668,8 @@ class FunctionsListForm_t(PluginForm):
                     continue
                 start = int(fn[0].strip(), 16)
                 func_name = fn[1].strip()
+                if start < idaapi.get_imagebase(): # it is RVA
+                    start = rva_to_va(start) # convert to VA
                 if start in curr_functions:
                     if self.subDataManager.setFunctionName(start, func_name) == True:
                         loaded += 1
@@ -1089,3 +1092,4 @@ class funclister_t(idaapi.plugin_t):
 def PLUGIN_ENTRY():
     return funclister_t()
     
+
