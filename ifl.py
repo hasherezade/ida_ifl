@@ -8,9 +8,9 @@
 # or press: PLUGIN_HOTKEY
 #
 """
-CC-BY: hasherezade, 2015 run via IDA Pro 6.8
+CC-BY: hasherezade, 2015-2017, run via IDA Pro >= 6.8
 """
-__VERSION__ = '1.2'
+__VERSION__ = '1.2.1'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -670,9 +670,13 @@ class FunctionsListForm_t(PluginForm):
                 func_name = fn[1].strip()
                 if start < idaapi.get_imagebase(): # it is RVA
                     start = rva_to_va(start) # convert to VA
+                
                 if start in curr_functions:
                     if self.subDataManager.setFunctionName(start, func_name) == True:
                         loaded += 1
+                else:
+                    MakeRptCmt(start, func_name) #set the name as a comment
+
         return loaded
 
     def imports_names_callback(self, ea, name, ord):
@@ -1092,4 +1096,3 @@ class funclister_t(idaapi.plugin_t):
 def PLUGIN_ENTRY():
     return funclister_t()
     
-
