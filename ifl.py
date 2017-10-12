@@ -21,8 +21,8 @@ from idaapi import *
 from idc import *
 
 from idaapi import PluginForm
-from PySide import QtGui, QtCore
-from PySide.QtCore import QObject, Signal, Slot
+from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 # --------------------------------------------------------------------------
 # custom functions:
@@ -168,7 +168,7 @@ def _getArgsNum(ea):
 #Global DataManager
 
 class DataManager(QObject):
-    updateSignal = Signal()
+    updateSignal = pyqtSignal()
     
     def __init__(self, parent=None):
         QtCore.QObject.__init__(self, parent=parent)
@@ -473,6 +473,11 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
             else:
                 self.refs_list = self.function_info_list[self.curr_index].called_list
         self.reset()
+
+    def reset(self):
+        self.beginResetModel()
+        self.endResetModel()
+
     
 #Qt4 API
     def rowCount(self, parent=None):
@@ -519,7 +524,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
   
 COLOR_NORMAL = 0xFFFFFF
 
-class FunctionsView_t(QtGui.QTableView):
+class FunctionsView_t(QtWidgets.QTableView):
 
     # private    
     def _set_segment_color(self, ea, color):
@@ -530,7 +535,7 @@ class FunctionsView_t(QtGui.QTableView):
     # public
     def __init__(self, dataManager, color_hilight, func_model, parent=None):
         super(FunctionsView_t, self).__init__(parent=parent)
-        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         #
         self.prev_addr = BADADDR
         self.color_hilight = color_hilight
@@ -570,7 +575,7 @@ class FunctionsView_t(QtGui.QTableView):
         event.accept()
         index = self.indexAt(event.pos())
         data = self.get_index_data(index)
-        super(QtGui.QTableView, self).mousePressEvent(event)
+        super(QtWidgets.QTableView, self).mousePressEvent(event)
       
     def mouseDoubleClickEvent(self, event):
         event.accept()
@@ -579,13 +584,13 @@ class FunctionsView_t(QtGui.QTableView):
             return
         data = self.get_index_data(index)  
         if not data:
-            super(QtGui.QTableView, self).mouseDoubleClickEvent(event)
+            super(QtWidgets.QTableView, self).mouseDoubleClickEvent(event)
             return
         col = index.column()
         if self.func_model.isFollowable(col):
             self.hilight_addr(data)
             Jump(data)
-        super(QtGui.QTableView, self).mouseDoubleClickEvent(event)
+        super(QtWidgets.QTableView, self).mouseDoubleClickEvent(event)
         
     def mouseMoveEvent(self, event):
         index = self.indexAt(event.pos())
@@ -752,7 +757,7 @@ class FunctionsListForm_t(PluginForm):
         self.addr_list.append(func_info)
     
     def _setup_sorted_model(self, view, model):
-        sorted_model = QtGui.QSortFilterProxyModel()    
+        sorted_model = QtCore.QSortFilterProxyModel()    
         sorted_model.setDynamicSortFilter(True)
         sorted_model.setSourceModel(model)
         view.setModel(sorted_model)
@@ -805,7 +810,7 @@ class FunctionsListForm_t(PluginForm):
         self.addr_view.resizeColumnToContents(6)
         self.addr_view.resizeColumnToContents(7)
 #public
-    @QtCore.Slot()
+    @pyqtSlot()
     def longoperationcomplete(self):
         data = g_DataManager.currentRva
         self.setRefOffset(data)
@@ -849,14 +854,14 @@ class FunctionsListForm_t(PluginForm):
         self.criterium_id = 0
         
         # Get parent widget
-        self.parent = self.FormToPySideWidget(form)
+        self.parent = self.FormToPyQtWidget(form)
         
         # Create models
         self.table_model = TableModel_t(self.addr_list)
         self.subDataManager = DataManager()
         
         #init
-        self.addr_sorted_model = QtGui.QSortFilterProxyModel()    
+        self.addr_sorted_model = QtCore.QSortFilterProxyModel()    
         self.addr_sorted_model.setDynamicSortFilter(True)
         self.addr_sorted_model.setSourceModel(self.table_model)
         self.addr_view = FunctionsView_t(g_DataManager, self._COLOR_HILIGHT_FUNC, self.table_model)
@@ -895,22 +900,22 @@ class FunctionsListForm_t(PluginForm):
         g_DataManager.updateSignal.connect(self.longoperationcomplete)
         
         # Create a Tab widget for references:
-        self.refs_tabs = QtGui.QTabWidget()
+        self.refs_tabs = QtWidgets.QTabWidget()
         self.refs_tabs.insertTab(0, self.refs_view, "Is refered by")
         self.refs_tabs.insertTab(1, self.refsfrom_view, "Refers to")
         
         # Create filter
-        self.filter_edit = QtGui.QLineEdit()
+        self.filter_edit = QtWidgets.QLineEdit()
         self.filter_edit.setPlaceholderText("keyword")
         self.filter_edit.textChanged.connect(self.filterChanged)
         
-        self.filter_combo = QtGui.QComboBox()
+        self.filter_combo = QtWidgets.QComboBox()
         self.filter_combo.addItems(TableModel_t.header_names)
         self.filter_combo.setCurrentIndex(TableModel_t.COL_NAME)
         #connect SIGNAL
         self.filter_combo.activated.connect(self.filterChanged)
         
-        self.criterium_combo = QtGui.QComboBox()
+        self.criterium_combo = QtWidgets.QComboBox()
         criteria = ["contains", "matches"]
         self.criterium_combo.addItems(criteria)
         self.criterium_combo.setCurrentIndex(0)
@@ -918,9 +923,9 @@ class FunctionsListForm_t(PluginForm):
         self.criterium_combo.activated.connect(self.criteriumChanged)
         
 
-        filter_panel = QtGui.QFrame()
-        filter_layout = QtGui.QHBoxLayout()
-        filter_layout.addWidget(QtGui.QLabel("Where "))
+        filter_panel = QtWidgets.QFrame()
+        filter_layout = QtWidgets.QHBoxLayout()
+        filter_layout.addWidget(QtWidgets.QLabel("Where "))
         filter_layout.addWidget(self.filter_combo)
         filter_layout.addWidget(self.criterium_combo)
         filter_layout.addWidget(self.filter_edit)
@@ -930,33 +935,33 @@ class FunctionsListForm_t(PluginForm):
         filter_panel.setFixedHeight(40)
         filter_panel.setAutoFillBackground(True)
         #
-        self.refs_label = QtGui.QLabel("Function")
+        self.refs_label = QtWidgets.QLabel("Function")
         self.refs_label.setTextFormat(QtCore.Qt.RichText)
         self.refs_label.setWordWrap(True)
         
-        panel1 = QtGui.QFrame()
-        layout1 = QtGui.QVBoxLayout()
+        panel1 = QtWidgets.QFrame()
+        layout1 = QtWidgets.QVBoxLayout()
         panel1.setLayout(layout1)
         
         layout1.addWidget(filter_panel)
         layout1.addWidget(self.addr_view)      
         layout1.setContentsMargins(0,0,0,0)
 
-        panel2 = QtGui.QFrame()
-        layout2 = QtGui.QVBoxLayout()
+        panel2 = QtWidgets.QFrame()
+        layout2 = QtWidgets.QVBoxLayout()
         layout2.addWidget(self.refs_label)
         layout2.addWidget(self.refs_tabs)
         layout2.addWidget(self._makeButtonsPanel())  
         layout2.setContentsMargins(0,10,0,0)
         panel2.setLayout(layout2)
         
-        self.main_splitter = QtGui.QSplitter()
+        self.main_splitter = QtWidgets.QSplitter()
         self.main_splitter.setOrientation(QtCore.Qt.Vertical)
         self.main_splitter.addWidget(panel1)
         self.main_splitter.addWidget(panel2)
         
         # Populate PluginForm
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.main_splitter)
         layout.setSpacing(0)
         layout.setContentsMargins(0,0,0,0)
@@ -965,21 +970,21 @@ class FunctionsListForm_t(PluginForm):
         idaapi.set_dock_pos(PLUGIN_NAME, "IDA HExview-1", idaapi.DP_RIGHT)
     
     def _makeButtonsPanel(self):
-        buttons_panel = QtGui.QFrame()
-        buttons_layout = QtGui.QHBoxLayout()
+        buttons_panel = QtWidgets.QFrame()
+        buttons_layout = QtWidgets.QHBoxLayout()
         buttons_panel.setLayout(buttons_layout)
         
-        importButton = QtGui.QPushButton("Load names")
+        importButton = QtWidgets.QPushButton("Load names")
         importButton.clicked.connect(self.importNames)
         buttons_layout.addWidget(importButton)
         
-        exportButton = QtGui.QPushButton("Save names")
+        exportButton = QtWidgets.QPushButton("Save names")
         exportButton.clicked.connect(self.exportNames)
         buttons_layout.addWidget(exportButton)
         return buttons_panel
         
     def importNames(self):
-        file_name, ext = QtGui.QFileDialog.getOpenFileName( None, "Export functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TXT Files (*.txt);;All files (*)")
+        file_name, ext = QtWidgets.QFileDialog.getOpenFileName( None, "Export functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TXT Files (*.txt);;All files (*)")
         if file_name is not None and len(file_name) > 0 :
             loaded = self._loadFunctionsNames(file_name)
             if loaded == 0:
@@ -988,7 +993,7 @@ class FunctionsListForm_t(PluginForm):
                 idaapi.info("Imported %d function names " % (loaded))
                 
     def exportNames(self):
-        file_name, ext = QtGui.QFileDialog.getSaveFileName( None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv)")
+        file_name, ext = QtWidgets.QFileDialog.getSaveFileName( None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv)")
         if file_name is not None and len(file_name) > 0 :
             if self._saveFunctionsNames(file_name) == False:
                 idaapi.warning("Failed exporting functions names!")
@@ -1013,38 +1018,18 @@ class FunctionsListForm_t(PluginForm):
                                options = PluginForm.FORM_PERSIST)
 
 # --------------------------------------------------------------------------
-class IFLMenuManager():
+class IFLMenuHandler(idaapi.action_handler_t):
     """ Manages menu items belonging to IFL"""
 
-    # public
     def __init__(self):
-        self.menuItems = None
-        
-    # private
-    def _makeMenuItems(self):
-        self.menuItems = list()
-        
-        if self._addMenuItem("View/", PLUGIN_NAME, PLUGIN_HOTKEY, 0, self._queryItem1, None) == False:
-            return False
+        idaapi.action_handler_t.__init__(self)
 
-        return True
-        
-    def _destroyMenuItems(self):
-        if self.menuItems is None:
-            return
-        for mItem in self.menuItems:
-            idaapi.del_menu_item(self.menuItems)
-            
-    def _addMenuItem(self, menupath, name, hotkey, flags, pyfunc, args):
-        menuItem = idaapi.add_menu_item(menupath, name, hotkey, flags, pyfunc, args)
-        if menuItem is None:
-            return False
-        self.menuItems.append(menuItem)
-        return True
-        
-    def _queryItem1(self):
+    def activate(self, ctx):
         open_form()
-        
+        return 1
+
+    def update(self, ctx):
+        return idaapi.AST_ENABLE_ALWAYS    
 
 # --------------------------------------------------------------------------
 
@@ -1076,15 +1061,23 @@ class funclister_t(idaapi.plugin_t):
     help = "Interactive Function List. Comments? Remarks? Mail to: hasherezade@op.pl"
     wanted_name = PLUGIN_NAME
     wanted_hotkey = ''
-    
-    IFLMngr = None
  
     def init(self):
-        IFLMngr = IFLMenuManager()
-        if IFLMngr._makeMenuItems():
-            return idaapi.PLUGIN_OK
-        IFLMngr._destroyMenuItems()
-        return idaapi.PLUGIN_SKIP
+
+        idaapi.register_action(idaapi.action_desc_t(
+            'ifl:open',  #action name
+            PLUGIN_NAME,
+            IFLMenuHandler(),
+            PLUGIN_HOTKEY,
+            'Opens Interactive Function List Pane')
+        )
+
+        idaapi.attach_action_to_menu(
+            'View/',
+            'ifl:open',
+            idaapi.SETMENU_APP)
+
+        return idaapi.PLUGIN_OK
         
     def run(self, arg):
         open_form()
