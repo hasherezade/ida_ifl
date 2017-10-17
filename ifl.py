@@ -810,10 +810,15 @@ class FunctionsListForm_t(PluginForm):
         self.addr_view.resizeColumnToContents(6)
         self.addr_view.resizeColumnToContents(7)
 #public
-    @pyqtSlot()
-    def longoperationcomplete(self):
-        data = g_DataManager.currentRva
-        self.setRefOffset(data)
+    try:
+        #@pyqtSlot()
+        def longoperationcomplete(self):
+            data = g_DataManager.currentRva
+            self.setRefOffset(data)
+    except TypeError:
+        def longoperationcomplete(self):
+            data = g_DataManager.currentRva
+            self.setRefOffset(data)
                 
     def setRefOffset(self, data):
         if not data:
