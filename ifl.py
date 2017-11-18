@@ -562,7 +562,10 @@ class FunctionsView_t(QtWidgets.QTableView):
         if not index.isValid():
             return None
         try:
-          index_data = long(index.data(QtCore.Qt.UserRole))
+          data_val = index.data(QtCore.Qt.UserRole)
+          if data_val is None:
+            return None
+          index_data = long(data_val)
         except ValueError:
           return None
         if not type(index_data) is long:
@@ -1056,7 +1059,7 @@ class funclister_t(idaapi.plugin_t):
     flags = idaapi.PLUGIN_UNL
     comment = "Interactive Functions List"
 
-    help = "Interactive Function List. Comments? Remarks? Mail to: hasherezade@op.pl"
+    help = "Interactive Function List. Comments? Remarks? Mail to: hasherezade@gmail.com"
     wanted_name = PLUGIN_NAME
     wanted_hotkey = ''
  
