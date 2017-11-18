@@ -10,7 +10,7 @@
 """
 CC-BY: hasherezade, 2015-2017, run via IDA Pro >= 7.0
 """
-__VERSION__ = '1.3'
+__VERSION__ = '1.3.1'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -23,6 +23,8 @@ from idc import *
 from idaapi import PluginForm
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+
+VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://github.com/hasherezade/ida_ifl"
 
 # --------------------------------------------------------------------------
 # custom functions:
@@ -215,6 +217,8 @@ class FunctionInfo_t():
 # --------------------------------------------------------------------------
 # custom models:
 # --------------------------------------------------------------------------
+
+"""The model for the top view: storing all the functions"""
 class TableModel_t(QtCore.QAbstractTableModel):
     """Model for the table """
     COL_START = 0
@@ -314,7 +318,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
         if col == self.COL_END:
             return True
         return False
-        
+
 #Qt API
     def rowCount(self, parent):
         return len(self.function_info_list)
@@ -329,24 +333,19 @@ class TableModel_t(QtCore.QAbstractTableModel):
       if index.column() == self.COL_NAME:
         MakeNameEx(func_info.start, str(content), SN_NOWARN) 
       return True
-      
+        
     def data(self, index, role):
         if not index.isValid():
             return None
         col = index.column()
         row = index.row()
-        if len(self.function_info_list) <= row:
-          return None
-          
+        
         func_info = self.function_info_list[row]
         
         if role == QtCore.Qt.UserRole:
-          if col == self.COL_START:
-            return func_info.start
-          elif col == self.COL_END:
+          if col == self.COL_END:
             return func_info.end
-          else:
-            return func_info.start
+          return func_info.start
         elif role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
           return self._displayData(row, col)
         elif role == QtCore.Qt.ToolTipRole:
@@ -370,6 +369,8 @@ class TableModel_t(QtCore.QAbstractTableModel):
         else:
             return None
 # --------------------------------------------------------------------------
+
+"""The bottom table model: for the references of the functions"""
 class RefsTableModel_t(QtCore.QAbstractTableModel):
     """Model for the table """
     COL_NAME = 0
@@ -414,7 +415,6 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         return addr_str+ " : " + GetDisasm(target_addr)
         
     def _displayData(self, row, col):
-    
       if len(self.refs_list) <= row:
           return None    
       curr_ref_fromaddr = self.refs_list[row][0] #fromaddr
@@ -478,7 +478,6 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         self.beginResetModel()
         self.endResetModel()
 
-    
 #Qt API
     def rowCount(self, parent=None):
         return len(self.refs_list)
@@ -491,9 +490,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
             return None
         col = index.column()
         row = index.row()
-        if len(self.refs_list) <= row:
-          return None
-          
+        
         curr_ref_addr = self.refs_list[row][0]
         
         if role == QtCore.Qt.UserRole:
@@ -511,7 +508,6 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
             return None
         flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
         return flags
-        
 
     def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.DisplayRole:
@@ -524,6 +520,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
   
 COLOR_NORMAL = 0xFFFFFF
 
+"""The top view: listing all the functions"""
 class FunctionsView_t(QtWidgets.QTableView):
 
     # private    
@@ -564,16 +561,10 @@ class FunctionsView_t(QtWidgets.QTableView):
     def get_index_data(self, index):
         if not index.isValid():
             return None
-        # fast workaround, because getting data from UserRole doesn't work...
-        if (index.column() is not 0 and index.column() is not 1):
-            return
         try:
-            dispayed_val = index.data(QtCore.Qt.DisplayRole)
-            index_data = long(dispayed_val, 16)
+          index_data = long(index.data(QtCore.Qt.UserRole))
         except ValueError:
-            return None
-        #index_data = index.data(QtCore.Qt.UserRole)
-        
+          return None
         if not type(index_data) is long:
             return None
         return index_data
@@ -1052,7 +1043,7 @@ def open_form():
     try:
         m_functionInfoForm
     except:
-        idaapi.msg("Loading Interactive Function List...")
+        idaapi.msg("%s\nLoading Interactive Function List...\n" % VERSION_INFO)
         m_functionInfoForm = FunctionsListForm_t()
 
     m_functionInfoForm.Show()
