@@ -8,9 +8,9 @@
 # or press: PLUGIN_HOTKEY
 #
 """
-CC-BY: hasherezade, 2015-2017, run via IDA Pro >= 6.8
+CC-BY: hasherezade, 2015-2017, run via IDA Pro >= 7.0
 """
-__VERSION__ = '1.2.1'
+__VERSION__ = '1.3'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -315,7 +315,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
             return True
         return False
         
-#Qt4 API
+#Qt API
     def rowCount(self, parent):
         return len(self.function_info_list)
 
@@ -479,7 +479,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         self.endResetModel()
 
     
-#Qt4 API
+#Qt API
     def rowCount(self, parent=None):
         return len(self.refs_list)
 
@@ -564,9 +564,16 @@ class FunctionsView_t(QtWidgets.QTableView):
     def get_index_data(self, index):
         if not index.isValid():
             return None
-            
-        index_data = index.data(QtCore.Qt.UserRole)
-
+        # fast workaround, because getting data from UserRole doesn't work...
+        if (index.column() is not 0 and index.column() is not 1):
+            return
+        try:
+            dispayed_val = index.data(QtCore.Qt.DisplayRole)
+            index_data = long(dispayed_val, 16)
+        except ValueError:
+            return None
+        #index_data = index.data(QtCore.Qt.UserRole)
+        
         if not type(index_data) is long:
             return None
         return index_data
@@ -810,16 +817,11 @@ class FunctionsListForm_t(PluginForm):
         self.addr_view.resizeColumnToContents(6)
         self.addr_view.resizeColumnToContents(7)
 #public
-    try:
-        #@pyqtSlot()
-        def longoperationcomplete(self):
-            data = g_DataManager.currentRva
-            self.setRefOffset(data)
-    except TypeError:
-        def longoperationcomplete(self):
-            data = g_DataManager.currentRva
-            self.setRefOffset(data)
-                
+    #@pyqtSlot()
+    def longoperationcomplete(self):
+        data = g_DataManager.currentRva
+        self.setRefOffset(data)
+
     def setRefOffset(self, data):
         if not data:
             return  
