@@ -14,7 +14,7 @@ __VERSION__ = '1.3.1'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
-PLUGIN_HOTKEY = "Alt-F"
+PLUGIN_HOTKEY = "Ctrl-Alt-F"
 
 import idautils
 from idaapi import *
