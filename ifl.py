@@ -191,6 +191,9 @@ class DataManager(QObject):
             rva = long(BADADDR) 
         self.currentRva = long(rva)
         self.updateSignal.emit()
+        
+    def refreshData(self):
+        self.updateSignal.emit()
  
 # --------------------------------------------------------------------------
 
@@ -336,7 +339,8 @@ class TableModel_t(QtCore.QAbstractTableModel):
             return False
         func_info = self.function_info_list[index.row()]
         if index.column() == self.COL_NAME:
-            MakeNameEx(func_info.start, str(content), SN_NOWARN) 
+            MakeNameEx(func_info.start, str(content), SN_NOWARN)
+            g_DataManager.refreshData()
         return True
 
     def data(self, index, role):
