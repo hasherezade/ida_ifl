@@ -187,8 +187,6 @@ class DataManager(QObject):
         return False
  
     def setCurrentRva(self, rva):
-        if self.currentRva == rva:
-            return # nothing changed 
         if rva is None:
             rva = long(BADADDR) 
         self.currentRva = long(rva)
