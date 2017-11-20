@@ -656,13 +656,13 @@ class FunctionsMapper_t(QObject):
         """Check if the given function is imported or internal.
         """
         
-        if start in self.importsSet:
+        if start in self._importsSet:
             return True
         if GetMnem(start) == 'call':
             return False
         #print GetMnem(start)
         op = GetOperandValue(start, 0)
-        if op in self.importsSet:
+        if op in self._importsSet:
             return True
         return False
 
@@ -670,8 +670,8 @@ class FunctionsMapper_t(QObject):
         """A callback adding a particular name and offset to the internal set of the imported functions.
         """
         
-        self.importsSet.add(ea)
-        self.importNamesSet.add(name)
+        self._importsSet.add(ea)
+        self._importNamesSet.add(name)
         # True -> Continue enumeration
         return True
 
@@ -679,8 +679,8 @@ class FunctionsMapper_t(QObject):
         """Enumerates imported functions with the help of IDA API and adds them to the internal sets.
         """
 
-        self.importsSet = set()
-        self.importNamesSet = set()
+        self._importsSet = set()
+        self._importNamesSet = set()
         nimps = idaapi.get_import_module_qty()
         for i in xrange(0, nimps):
             idaapi.enum_import_names(i, self.imports_names_callback)
@@ -689,7 +689,7 @@ class FunctionsMapper_t(QObject):
         """Checks if the given name belongs to the imported function with the help of internal set.
         """
 
-        if name in self.importNamesSet:
+        if name in self._importNamesSet:
             return True
         return False
 
@@ -776,19 +776,19 @@ class FunctionsMapper_t(QObject):
         calling_list = self._listRefsFrom(func, start, end)
 
         func_info = FunctionInfo_t(start, end, refs_list, calling_list, is_import)
-        self.functionsMap[va_to_rva(start)] = func_info
-        self.functionsMap[va_to_rva(end)] = func_info
-        self.addr_list.append(func_info)
+        self._functionsMap[va_to_rva(start)] = func_info
+        self._functionsMap[va_to_rva(end)] = func_info
+        self.funcList.append(func_info)
         
     # public
     def __init__(self, parent=None):
         super(FunctionsMapper_t, self).__init__(parent=parent)
-        self.functionsMap = dict()
-        self.addr_list = [] #public
+        self._functionsMap = dict()
+        self.funcList = [] #public
         self._loadLocals()
         
     def funcAt(self, rva):
-        func_info = self.functionsMap[rva]
+        func_info = self._functionsMap[rva]
         return func_info
         
 
@@ -992,7 +992,7 @@ class FunctionsListForm_t(PluginForm):
         # Create models
         self.subDataManager = DataManager()
 
-        self.table_model = TableModel_t(self.funcMapper.addr_list)
+        self.table_model = TableModel_t(self.funcMapper.funcList)
         
         #init
         self.addr_sorted_model = QtCore.QSortFilterProxyModel()    
@@ -1008,7 +1008,7 @@ class FunctionsListForm_t(PluginForm):
     
         self.adjustColumnsToContents()
         #
-        self.refsto_model = RefsTableModel_t(self.funcMapper.addr_list, True)
+        self.refsto_model = RefsTableModel_t(self.funcMapper.funcList, True)
         self.refs_view = FunctionsView_t(self.subDataManager, self._COLOR_HILIGHT_REFTO, self.refsto_model)
         self._setup_sorted_model(self.refs_view, self.refsto_model)
         self.refs_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
@@ -1019,7 +1019,7 @@ class FunctionsListForm_t(PluginForm):
         font.setPointSize(8)
         self.refs_view.setFont(font)
         #
-        self.refsfrom_model = RefsTableModel_t(self.funcMapper.addr_list, False)
+        self.refsfrom_model = RefsTableModel_t(self.funcMapper.funcList, False)
         self.refsfrom_view = FunctionsView_t(self.subDataManager, self._COLOR_HILIGHT_REFFROM, self.refsfrom_model)
         self._setup_sorted_model(self.refsfrom_view, self.refsfrom_model)
         self.refsfrom_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
