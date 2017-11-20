@@ -10,7 +10,7 @@
 """
 CC-BY: hasherezade, 2015-2017, run via IDA Pro >= 7.0
 """
-__VERSION__ = '1.3.1'
+__VERSION__ = '1.3.2'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -191,7 +191,7 @@ class DataManager(QObject):
             rva = long(BADADDR) 
         self.currentRva = long(rva)
         self.updateSignal.emit()
-        
+
     def refreshData(self):
         self.updateSignal.emit()
  
@@ -646,15 +646,74 @@ class FunctionsView_t(QtWidgets.QTableView):
         
 # --------------------------------------------------------------------------
 
-class FunctionsListForm_t(PluginForm):
-    """The main form of the IFL plugin.
+class FunctionsMapper_t(QObject):
+    """The class keeping the mapping of all the functions.
     """
-
-#private
-    _COLOR_HILIGHT_FUNC = 0xFFDDBB # BBGGRR
-    _COLOR_HILIGHT_REFTO = 0xBBFFBB
-    _COLOR_HILIGHT_REFFROM = 0xDDBBFF
     
+    #private
+
+    def _isImportStart(self, start):
+        """Check if the given function is imported or internal.
+        """
+        
+        if start in self.importsSet:
+            return True
+        if GetMnem(start) == 'call':
+            return False
+        #print GetMnem(start)
+        op = GetOperandValue(start, 0)
+        if op in self.importsSet:
+            return True
+        return False
+
+    def imports_names_callback(self, ea, name, ord):
+        """A callback adding a particular name and offset to the internal set of the imported functions.
+        """
+        
+        self.importsSet.add(ea)
+        self.importNamesSet.add(name)
+        # True -> Continue enumeration
+        return True
+
+    def _loadImports(self):
+        """Enumerates imported functions with the help of IDA API and adds them to the internal sets.
+        """
+
+        self.importsSet = set()
+        self.importNamesSet = set()
+        nimps = idaapi.get_import_module_qty()
+        for i in xrange(0, nimps):
+            idaapi.enum_import_names(i, self.imports_names_callback)
+            
+    def _isImportName(self, name):
+        """Checks if the given name belongs to the imported function with the help of internal set.
+        """
+
+        if name in self.importNamesSet:
+            return True
+        return False
+
+    def _listRefsTo(self, start):
+        """Make a list of all the references to the given function.
+        Args:
+          func : The function references to which we are searching.
+          start : The function's start offset.
+
+        Returns:
+          list : A list of tuples. 
+            Each tuple represents: the offsets:
+            0 : the offset from where the given function was referenced by the foreign function
+            1 : the function's start address
+        """
+
+        func_refs_to = XrefsTo(start, 1)
+        refs_list = []
+        for ref in func_refs_to:
+            if idc.GetMnem(ref.frm) == "":
+                continue
+            refs_list.append((ref.frm, start))
+        return refs_list
+
     def _getCallingOffset(self, func, called_list):
         """Lists the offsets from where the given function references the list of other function.
         """
@@ -672,7 +731,76 @@ class FunctionsListForm_t(PluginForm):
                 calling_list.append((curr, op))
             curr = NextAddr(curr)
         return calling_list
+
+    def _listRefsFrom(self, func, start, end):
+        """Make a list of all the references made from the given function.
+            
+        Args:
+          func : The function inside of which we are searching.
+          start : The function's start offset.
+          end : The function's end offset.
+
+        Returns:
+          list : A list of tuples. Each tuple represents: 
+            0 : the offset from where the given function referenced the other entity
+            1 : the address that was referenced
+        """
     
+        dif = end - start
+        called_list = []
+        func_name = _getFunctionNameAt(start)
+        
+        for indx in xrange(0, dif):
+          addr = start + indx
+          func_refs_from = XrefsFrom(addr, 1)
+          for ref in func_refs_from:
+            if _getFunctionNameAt(ref.to) == func_name:
+              #skip jumps inside self
+              continue 
+            called_list.append(ref.to)
+        calling_list = self._getCallingOffset(func, called_list)
+        return calling_list
+
+    def _loadLocals(self):
+      """Enumerates functions using IDA API and loads them into the internal mapping.
+      """
+
+      self._loadImports()
+      for func in Functions():
+        start = GetFunctionAttr(func, FUNCATTR_START)
+        end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
+        
+        is_import = self._isImportStart(start)
+        
+        refs_list = self._listRefsTo(start)
+        calling_list = self._listRefsFrom(func, start, end)
+
+        func_info = FunctionInfo_t(start, end, refs_list, calling_list, is_import)
+        self.functionsMap[va_to_rva(start)] = func_info
+        self.functionsMap[va_to_rva(end)] = func_info
+        self.addr_list.append(func_info)
+        
+    # public
+    def __init__(self, parent=None):
+        super(FunctionsMapper_t, self).__init__(parent=parent)
+        self.functionsMap = dict()
+        self.addr_list = [] #public
+        self._loadLocals()
+        
+    def funcAt(self, rva):
+        func_info = self.functionsMap[rva]
+        return func_info
+        
+
+class FunctionsListForm_t(PluginForm):
+    """The main form of the IFL plugin.
+    """
+
+#private
+    _COLOR_HILIGHT_FUNC = 0xFFDDBB # BBGGRR
+    _COLOR_HILIGHT_REFTO = 0xBBFFBB
+    _COLOR_HILIGHT_REFFROM = 0xDDBBFF
+
     def _listFunctionsAddr(self):
         """Lists all the starting addresses of the functions using IDA API.
         """
@@ -734,114 +862,6 @@ class FunctionsListForm_t(PluginForm):
                     MakeRptCmt(start, func_name) #set the name as a comment
 
         return loaded
-
-    def imports_names_callback(self, ea, name, ord):
-        """A callback adding a particular name and offset to the internal set of the imported functions.
-        """
-        
-        self.importsSet.add(ea)
-        self.importNamesSet.add(name)
-        # True -> Continue enumeration
-        return True
-        
-    def _loadImports(self):
-        """Enumerates imported functions with the help of IDA API and adds them to the internal sets.
-        """
-
-        self.importsSet = set()
-        self.importNamesSet = set()
-        nimps = idaapi.get_import_module_qty()
-        for i in xrange(0, nimps):
-            idaapi.enum_import_names(i, self.imports_names_callback)
-
-    def _isImportName(self, name):
-        """Checks if the given name belongs to the imported function with the help of internal set.
-        """
-
-        if name in self.importNamesSet:
-            return True
-        return False
-    
-    def _isImportStart(self, start):
-        if start in self.importsSet:
-            return True
-        if GetMnem(start) == 'call':
-            return False
-        #print GetMnem(start)
-        op = GetOperandValue(start, 0)
-        if op in self.importsSet:
-            return True
-        return False
-    
-    def _listRefsTo(self, start):
-        """Make a list of all the references to the given function.
-        Args:
-          func : The function references to which we are searching.
-          start : The function's start offset.
-
-        Returns:
-          list : A list of tuples. 
-            Each tuple represents: the offsets:
-            0 : the offset from where the given function was referenced by the foreign function
-            1 : the function's start address
-        """
-
-        func_refs_to = XrefsTo(start, 1)
-        refs_list = []
-        for ref in func_refs_to:
-            if idc.GetMnem(ref.frm) == "":
-                continue
-            refs_list.append((ref.frm, start))
-        return refs_list
-    
-    def _listRefsFrom(self, func, start, end):
-        """Make a list of all the references made from the given function.
-            
-        Args:
-          func : The function inside of which we are searching.
-          start : The function's start offset.
-          end : The function's end offset.
-
-        Returns:
-          list : A list of tuples. Each tuple represents: 
-            0 : the offset from where the given function referenced the other entity
-            1 : the address that was referenced
-        """
-    
-        dif = end - start
-        called_list = []
-        func_name = _getFunctionNameAt(start)
-        
-        for indx in xrange(0, dif):
-          addr = start + indx
-          func_refs_from = XrefsFrom(addr, 1)
-          for ref in func_refs_from:
-            if _getFunctionNameAt(ref.to) == func_name:
-              #skip jumps inside self
-              continue 
-            called_list.append(ref.to)
-        calling_list = self._getCallingOffset(func, called_list)
-        return calling_list
-    
-    def _loadLocals(self):
-      """Enumerates functions using IDA API and loads them into the internal mapping.
-      """
-
-      self._loadImports()
-      
-      for func in Functions():
-        start = GetFunctionAttr(func, FUNCATTR_START)
-        end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
-        
-        is_import = self._isImportStart(start)
-        
-        refs_list = self._listRefsTo(start)
-        calling_list = self._listRefsFrom(func, start, end)
-
-        func_info = FunctionInfo_t(start, end, refs_list, calling_list, is_import)
-        self.functionsMap[va_to_rva(start)] = func_info
-        self.functionsMap[va_to_rva(end)] = func_info
-        self.addr_list.append(func_info)
     
     def _setup_sorted_model(self, view, model):
         """Connects the given sorted data model with the given view.
@@ -875,7 +895,7 @@ class FunctionsListForm_t(PluginForm):
         """
 
         try:
-            func_info = self.functionsMap[va_to_rva(ea)]
+            func_info = self.funcMapper.funcAt(va_to_rva(ea))
         except KeyError:
             return
             
@@ -891,7 +911,7 @@ class FunctionsListForm_t(PluginForm):
         tocount = 0
         fromcount = 0
         try:
-            func_info = self.functionsMap[va_to_rva(ea)]
+            func_info = self.funcMapper.funcAt(va_to_rva(ea))
             tocount = len(func_info.refs_list)
             fromcount = len(func_info.called_list)
         except KeyError:
@@ -957,23 +977,22 @@ class FunctionsListForm_t(PluginForm):
         else:
             self.filter_edit.setPlaceholderText("regex")
         self.filterChanged()
-        
+
     def OnCreate(self, form):
         """Called when the plugin form is created
         """
         
         #init data structures:
-        self.functionsMap = dict()
-        self.addr_list = []
-        self._loadLocals()
+        self.funcMapper = FunctionsMapper_t()
         self.criterium_id = 0
         
         # Get parent widget
         self.parent = self.FormToPyQtWidget(form)
         
         # Create models
-        self.table_model = TableModel_t(self.addr_list)
         self.subDataManager = DataManager()
+
+        self.table_model = TableModel_t(self.funcMapper.addr_list)
         
         #init
         self.addr_sorted_model = QtCore.QSortFilterProxyModel()    
@@ -989,7 +1008,7 @@ class FunctionsListForm_t(PluginForm):
     
         self.adjustColumnsToContents()
         #
-        self.refsto_model = RefsTableModel_t(self.addr_list, True)
+        self.refsto_model = RefsTableModel_t(self.funcMapper.addr_list, True)
         self.refs_view = FunctionsView_t(self.subDataManager, self._COLOR_HILIGHT_REFTO, self.refsto_model)
         self._setup_sorted_model(self.refs_view, self.refsto_model)
         self.refs_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
@@ -1000,7 +1019,7 @@ class FunctionsListForm_t(PluginForm):
         font.setPointSize(8)
         self.refs_view.setFont(font)
         #
-        self.refsfrom_model = RefsTableModel_t(self.addr_list, False)
+        self.refsfrom_model = RefsTableModel_t(self.funcMapper.addr_list, False)
         self.refsfrom_view = FunctionsView_t(self.subDataManager, self._COLOR_HILIGHT_REFFROM, self.refsfrom_model)
         self._setup_sorted_model(self.refsfrom_view, self.refsfrom_model)
         self.refsfrom_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
