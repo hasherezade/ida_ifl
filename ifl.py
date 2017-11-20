@@ -46,71 +46,71 @@ def function_at(ea):
     return None
     
 def parse_function_args(ea):
-  local_variables = [ ]
-  arguments = [ ]
-  current = local_variables
+    local_variables = [ ]
+    arguments = [ ]
+    current = local_variables
 
-  frame = idc.GetFrame(ea)
-  arg_string = ""
-  if frame == None:
-    return ""
-        
-  start = idc.GetFirstMember(frame)
-  end = idc.GetLastMember(frame)
-  count = 0
-  max_count = 10000
-  args_str = ""     
-  while start <= end and count <= max_count:
-    size = idc.GetMemberSize(frame, start)
-    count = count + 1
-    if size == None:
-      start = start + 1
-      continue
+    frame = idc.GetFrame(ea)
+    arg_string = ""
+    if frame == None:
+        return ""
+                
+    start = idc.GetFirstMember(frame)
+    end = idc.GetLastMember(frame)
+    count = 0
+    max_count = 10000
+    args_str = ""         
+    while start <= end and count <= max_count:
+        size = idc.GetMemberSize(frame, start)
+        count = count + 1
+        if size == None:
+            start = start + 1
+            continue
 
-    name = idc.GetMemberName(frame, start)  
-    start += size
-            
-    if name in [" r", " s"]:
-      # Skip return address and base pointer
-      current = arguments
-      continue
-    arg_string += " " + name
-    current.append(name)
-  args_str = ", ".join(arguments)
-  if len(args_str) == 0:
-    args_str = "void"
-  return "(" + args_str + ")"
+        name = idc.GetMemberName(frame, start)    
+        start += size
+
+        if name in [" r", " s"]:
+            # Skip return address and base pointer
+            current = arguments
+            continue
+        arg_string += " " + name
+        current.append(name)
+    args_str = ", ".join(arguments)
+    if len(args_str) == 0:
+        args_str = "void"
+    return "(" + args_str + ")"
 
 def parse_function_type(ea, end=None):
-  frame = idc.GetFrame(ea)
-  if frame == None:
-    return ""
-  if end == None: #try to find end
-      func = function_at(ea)
-      if not func :
-        return "?"
-      end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END)) 
-  end_addr = end
-  mnem = GetDisasm(end_addr)
-  
-  if not "ret" in mnem:
-    #it's not a real end, get instruction before...
-    end_addr = PrevAddr(end)
-    if end_addr == BADADDR:
-      #cannot get the real end
-      return ""
+    frame = idc.GetFrame(ea)
+    if frame == None:
+        return ""
+    if end == None: #try to find end
+            func = function_at(ea)
+            if not func :
+                return "?"
+            end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
+    end_addr = end
     mnem = GetDisasm(end_addr)
+    
+    if not "ret" in mnem:
+        #it's not a real end, get instruction before...
+        end_addr = PrevAddr(end)
+        if end_addr == BADADDR:
+            #cannot get the real end
+            return ""
+        mnem = GetDisasm(end_addr)
 
-  if not "ret" in mnem:
-    #cannot get the real end
-    return ""
+    if not "ret" in mnem:
+        #cannot get the real end
+        return ""
 
-  op = GetOpType(end_addr, 0)
-  if op == o_void:
-    #retn has NO parameters
-    return "__cdecl"
-  #retn has parameters
-  return "__stdcall"
+    op = GetOpType(end_addr, 0)
+    if op == o_void:
+        #retn has NO parameters
+        return "__cdecl"
+    #retn has parameters
+    return "__stdcall"
 
 def _getFunctionType(start, end=None):
     type = GetType(start)
@@ -174,18 +174,18 @@ class DataManager(QObject):
     """
 
     updateSignal = pyqtSignal()
-    
+
     def __init__(self, parent=None):
         QtCore.QObject.__init__(self, parent=parent)
         self.currentRva = long(BADADDR)
-        
+
     def setFunctionName(self, start, func_name):
         flags = idaapi.SN_NOWARN | idaapi.SN_NOCHECK
         if idc.MakeNameEx(start, func_name, flags):
             self.updateSignal.emit()
             return True
         return False
- 
+
     def setCurrentRva(self, rva):
         if rva is None:
             rva = long(BADADDR) 
@@ -206,7 +206,7 @@ class FunctionInfo_t():
         self.is_import = is_import
         self.refs_list = refs_list
         self.called_list = called_list
-    
+
     def contains(self, addr):
         """Check if the given address lies inside the function.
         """
@@ -237,87 +237,86 @@ class TableModel_t(QtCore.QAbstractTableModel):
     COL_IMPORT = 7
     COL_COUNT = 8
     header_names = ['Start', 'End', 'Name', 'Type', 'Args', 'Is refered by', 'Refers to', 'Imported?']
-    
+
 #private:
 
     def _displayHeader(self, orientation, col):
-      if orientation == QtCore.Qt.Vertical:
+        if orientation == QtCore.Qt.Vertical:
+            return None
+        if col == self.COL_START:
+            return self.header_names[self.COL_START]
+        if col == self.COL_END:
+            return self.header_names[self.COL_END]
+        if col == self.COL_TYPE:
+            return self.header_names[self.COL_TYPE]
+        if col == self.COL_ARGS:
+            return self.header_names[self.COL_ARGS]
+        if col == self.COL_NAME:
+            return self.header_names[self.COL_NAME]
+        if col == self.COL_REFS:
+            return self.header_names[self.COL_REFS]
+        if col == self.COL_CALLED:
+            return self.header_names[self.COL_CALLED]
+        if col == self.COL_IMPORT:
+            return self.header_names[self.COL_IMPORT]
         return None
-      if col == self.COL_START:
-        return self.header_names[self.COL_START]
-      if col == self.COL_END:
-        return self.header_names[self.COL_END]
-      if col == self.COL_TYPE:
-        return self.header_names[self.COL_TYPE]
-      if col == self.COL_ARGS:
-        return self.header_names[self.COL_ARGS]
-      if col == self.COL_NAME:
-        return self.header_names[self.COL_NAME]
-      if col == self.COL_REFS:
-        return self.header_names[self.COL_REFS]
-      if col == self.COL_CALLED:
-        return self.header_names[self.COL_CALLED]
-      if col == self.COL_IMPORT:
-        return self.header_names[self.COL_IMPORT]
-      return None
-      
+
     def _displayData(self, row, col):
-      func_info = self.function_info_list[row]
-      if col == self.COL_START:
-        return "%08x" % func_info.start
-      if col == self.COL_END:
-        return "%08x" % func_info.end
-      if col == self.COL_TYPE:
-        return func_info.type
-      if col == self.COL_ARGS:
-        return _getArgsDescription(func_info.start)
-      if col == self.COL_NAME:
-        return _getFunctionNameAt(func_info.start)
-      if col == self.COL_REFS:
-        return len(func_info.refs_list)
-      if col == self.COL_CALLED:
-        return len(func_info.called_list)
-      if col == self.COL_IMPORT:
-        if func_info.is_import:
-            return "+"
-        return "-"
-      return None
-      
+        func_info = self.function_info_list[row]
+        if col == self.COL_START:
+            return "%08x" % func_info.start
+        if col == self.COL_END:
+            return "%08x" % func_info.end
+        if col == self.COL_TYPE:
+            return func_info.type
+        if col == self.COL_ARGS:
+            return _getArgsDescription(func_info.start)
+        if col == self.COL_NAME:
+            return _getFunctionNameAt(func_info.start)
+        if col == self.COL_REFS:
+            return len(func_info.refs_list)
+        if col == self.COL_CALLED:
+            return len(func_info.called_list)
+        if col == self.COL_IMPORT:
+            if func_info.is_import:
+                return "+"
+            return "-"
+        return None
+
     def _displayToolTip(self, row, col):
-      func_info = self.function_info_list[row]
-      if col == self.COL_START or col == self.COL_END:
-        return "Double Click to follow"
-      if col == self.COL_NAME:
-        return "Double Click to edit"
-      if col == self.COL_REFS:
-        return self._listRefs(func_info.refs_list)
-      if col == self.COL_CALLED:
-        return self._listRefs(func_info.called_list)
-      return ""
-      
+        func_info = self.function_info_list[row]
+        if col == self.COL_START or col == self.COL_END:
+            return "Double Click to follow"
+        if col == self.COL_NAME:
+            return "Double Click to edit"
+        if col == self.COL_REFS:
+            return self._listRefs(func_info.refs_list)
+        if col == self.COL_CALLED:
+            return self._listRefs(func_info.called_list)
+        return ""
+
     def _displayBackground(self, row, col):
-      func_info = self.function_info_list[row]
-      if col == self.COL_START or col == self.COL_END:
-        return QtGui.QColor("lightblue")
-        
-      if col == self.COL_NAME:
-        if func_info.is_import :
-            return QtGui.QColor("orange")
-        return QtGui.QColor("khaki")
-      return None
-     
+        func_info = self.function_info_list[row]
+        if col == self.COL_START or col == self.COL_END:
+            return QtGui.QColor("lightblue")
+        if col == self.COL_NAME:
+            if func_info.is_import:
+                return QtGui.QColor("orange")
+            return QtGui.QColor("khaki")
+        return None
+
     def _listRefs(self, refs_list):
-      str_list = []
-      for ea, ea_to in refs_list:
-        str = "%08x @ %s" % (ea, _getFunctionNameAt(ea_to))
-        str_list.append(str)
-      return '\n'.join(str_list)  
-      
+        str_list = []
+        for ea, ea_to in refs_list:
+            str = "%08x @ %s" % (ea, _getFunctionNameAt(ea_to))
+            str_list.append(str)
+        return '\n'.join(str_list)
+
 #public:
     def __init__(self, function_info_list, parent=None, *args):
         super(TableModel_t, self).__init__()
         self.function_info_list = function_info_list
-        
+
     def isFollowable(self, col):
         if col == self.COL_START:
             return True
@@ -331,15 +330,15 @@ class TableModel_t(QtCore.QAbstractTableModel):
 
     def columnCount(self, parent):
         return self.COL_COUNT
-    
+
     def setData(self, index, content, role):
-      if not index.isValid():
-        return False
-      func_info = self.function_info_list[index.row()]
-      if index.column() == self.COL_NAME:
-        MakeNameEx(func_info.start, str(content), SN_NOWARN) 
-      return True
-        
+        if not index.isValid():
+            return False
+        func_info = self.function_info_list[index.row()]
+        if index.column() == self.COL_NAME:
+            MakeNameEx(func_info.start, str(content), SN_NOWARN) 
+        return True
+
     def data(self, index, role):
         if not index.isValid():
             return None
@@ -349,15 +348,15 @@ class TableModel_t(QtCore.QAbstractTableModel):
         func_info = self.function_info_list[row]
         
         if role == QtCore.Qt.UserRole:
-          if col == self.COL_END:
-            return func_info.end
-          return func_info.start
+            if col == self.COL_END:
+                return func_info.end
+            return func_info.start
         elif role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
-          return self._displayData(row, col)
+            return self._displayData(row, col)
         elif role == QtCore.Qt.ToolTipRole:
-          return self._displayToolTip(row, col)
+            return self._displayToolTip(row, col)
         elif role == QtCore.Qt.BackgroundColorRole:
-          return self._displayBackground(row, col)
+            return self._displayBackground(row, col)
         else:
             return None
 
@@ -366,14 +365,15 @@ class TableModel_t(QtCore.QAbstractTableModel):
             return None
         flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
         if index.column() == self.COL_NAME:
-          return flags | QtCore.Qt.ItemIsEditable
+            return flags | QtCore.Qt.ItemIsEditable
         return flags
-        
+
     def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.DisplayRole:
             return self._displayHeader(orientation, section)
         else:
             return None
+
 # --------------------------------------------------------------------------
 
 class RefsTableModel_t(QtCore.QAbstractTableModel):
@@ -384,12 +384,12 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
     COL_ADDR = 1
     COL_TOADDR = 2
     COL_COUNT = 3
-    
+
 #private:
     def _displayHeader(self, orientation, col):
         """Retrieves a field description to be displayed in the header.
         """
-    
+
         if orientation == QtCore.Qt.Vertical:
             return None
         if col == self.COL_ADDR:
@@ -399,11 +399,11 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         if col == self.COL_NAME:
             return "Foreign Val."
         return None
-    
+
     def _getTargetAddr(self, row):
         """Retrieves the address from which function was referenced, or to which it references.
-    """
-    
+        """
+
         curr_ref_fromaddr = self.refs_list[row][0] #fromaddr
         curr_ref_addr = self.refs_list[row][1] #toaddr
         target_addr = BADADDR
@@ -412,7 +412,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         else:
             target_addr = curr_ref_addr
         return target_addr
-            
+
     def _getForeignFuncName(self, row):
         """Retrieves a name of the foreign function or the details on the referenced address.
         """
@@ -429,27 +429,27 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         addr_str = "[%08lx]" % target_addr
         target_name = GetDisasm(target_addr)
         return addr_str+ " : " + GetDisasm(target_addr)
-        
+
     def _displayData(self, row, col):
-      """Retrieves the data to be displayed. appropriately to the row and column.
-      """
-      
-      if len(self.refs_list) <= row:
-          return None    
-      curr_ref_fromaddr = self.refs_list[row][0] #fromaddr
-      curr_ref_addr = self.refs_list[row][1] #toaddr
-      if col == self.COL_ADDR:
-        return "%08x" % curr_ref_fromaddr
-      if col == self.COL_TOADDR:
-        return "%08x" % curr_ref_addr
-      if col == self.COL_NAME:
-        return self._getForeignFuncName(row)
-      return None
-    
+        """Retrieves the data to be displayed. appropriately to the row and column.
+        """
+
+        if len(self.refs_list) <= row:
+            return None    
+        curr_ref_fromaddr = self.refs_list[row][0] #fromaddr
+        curr_ref_addr = self.refs_list[row][1] #toaddr
+        if col == self.COL_ADDR:
+            return "%08x" % curr_ref_fromaddr
+        if col == self.COL_TOADDR:
+            return "%08x" % curr_ref_addr
+        if col == self.COL_NAME:
+            return self._getForeignFuncName(row)
+        return None
+
     def _getAddrToFollow(self, row, col):
         """Retrieves the address that can be followed on click.
         """
-        
+
         if col == self.COL_ADDR:
             return self.refs_list[row][0]
         if col == self.COL_TOADDR:
@@ -495,8 +495,8 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
     def setCurrentIndex(self, curr_index):
         self.curr_index = curr_index
         if self.curr_index == (-1) or self.curr_index >= len(self.function_info_list):
-          #reset list
-          self.refs_list = []
+            #reset list
+            self.refs_list = []
         else:
             if self.is_refs_to :
                 self.refs_list = self.function_info_list[self.curr_index].refs_list
@@ -593,12 +593,12 @@ class FunctionsView_t(QtWidgets.QTableView):
         if not index.isValid():
             return None
         try:
-          data_val = index.data(QtCore.Qt.UserRole)
-          if data_val is None:
-            return None
-          index_data = long(data_val)
+            data_val = index.data(QtCore.Qt.UserRole)
+            if data_val is None:
+                return None
+            index_data = long(data_val)
         except ValueError:
-          return None
+            return None
         if not type(index_data) is long:
             return None
         return index_data
@@ -645,7 +645,7 @@ class FunctionsView_t(QtWidgets.QTableView):
 class FunctionsListForm_t(PluginForm):
     """The main form of the IFL plugin.
     """
-  
+
 #private
     _COLOR_HILIGHT_FUNC = 0xFFDDBB # BBGGRR
     _COLOR_HILIGHT_REFTO = 0xBBFFBB
@@ -785,9 +785,9 @@ class FunctionsListForm_t(PluginForm):
         func_refs_to = XrefsTo(start, 1)
         refs_list = []
         for ref in func_refs_to:
-          if idc.GetMnem(ref.frm) == "":
-            continue
-          refs_list.append((ref.frm, start))
+            if idc.GetMnem(ref.frm) == "":
+                continue
+            refs_list.append((ref.frm, start))
         return refs_list
     
     def _listRefsFrom(self, func, start, end):
@@ -900,10 +900,10 @@ class FunctionsListForm_t(PluginForm):
         """
     
         self.addr_view.resizeColumnToContents(0)
-        self.addr_view.resizeColumnToContents(1)     
+        self.addr_view.resizeColumnToContents(1)
         self.addr_view.resizeColumnToContents(2)
         #
-        self.addr_view.resizeColumnToContents(5)     
+        self.addr_view.resizeColumnToContents(5)
         self.addr_view.resizeColumnToContents(6)
         self.addr_view.resizeColumnToContents(7)
 #public
@@ -1134,7 +1134,7 @@ class FunctionsListForm_t(PluginForm):
     def Show(self):
         """Creates the form if not created or sets the focus if the form already exits.
         """
-    
+
         return PluginForm.Show(self,
                                PLUGIN_NAME,
                                options = PluginForm.FORM_PERSIST)
@@ -1184,7 +1184,7 @@ class funclister_t(idaapi.plugin_t):
     help = "Interactive Function List. Comments? Remarks? Mail to: hasherezade@gmail.com"
     wanted_name = PLUGIN_NAME
     wanted_hotkey = ''
- 
+
     def init(self):
 
         idaapi.register_action(idaapi.action_desc_t(
@@ -1201,7 +1201,7 @@ class funclister_t(idaapi.plugin_t):
             idaapi.SETMENU_APP)
 
         return idaapi.PLUGIN_OK
-        
+
     def run(self, arg):
         open_form()
         pass
@@ -1211,4 +1211,4 @@ class funclister_t(idaapi.plugin_t):
 
 def PLUGIN_ENTRY():
     return funclister_t()
-    
+
