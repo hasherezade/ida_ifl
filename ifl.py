@@ -33,7 +33,7 @@ VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://git
 def rva_to_va(rva):
     base = idaapi.get_imagebase()
     return rva + base
-    
+
 def va_to_rva(va):
     base = idaapi.get_imagebase()
     return va - base
@@ -44,7 +44,7 @@ def function_at(ea):
     for func in Functions():
         return func
     return None
-    
+
 def parse_function_args(ea):
     local_variables = [ ]
     arguments = [ ]
@@ -54,12 +54,12 @@ def parse_function_args(ea):
     arg_string = ""
     if frame == None:
         return ""
-                
+
     start = idc.GetFirstMember(frame)
     end = idc.GetLastMember(frame)
     count = 0
     max_count = 10000
-    args_str = ""         
+    args_str = ""
     while start <= end and count <= max_count:
         size = idc.GetMemberSize(frame, start)
         count = count + 1
@@ -67,7 +67,7 @@ def parse_function_args(ea):
             start = start + 1
             continue
 
-        name = idc.GetMemberName(frame, start)    
+        name = idc.GetMemberName(frame, start)
         start += size
 
         if name in [" r", " s"]:
@@ -92,7 +92,7 @@ def parse_function_type(ea, end=None):
             end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
     end_addr = end
     mnem = GetDisasm(end_addr)
-    
+
     if not "ret" in mnem:
         #it's not a real end, get instruction before...
         end_addr = PrevAddr(end)
@@ -120,14 +120,14 @@ def _getFunctionType(start, end=None):
     if not args_start == None:
         type = type[:args_start]
     return type
-    
+
 def _isFunctionMangled(ea):
     name = GetFunctionName(ea)
     disable_mask = GetLongPrm(INF_SHORT_DN)
     if Demangle(name, disable_mask) == None:
         return False
     return True
-    
+
 def _getFunctionNameAt(ea):
     name = GetFunctionName(ea)
     disable_mask = GetLongPrm(INF_SHORT_DN)
@@ -149,7 +149,7 @@ def _getArgsDescription(ea):
     if args_start != None and args_start != (-1):
         return name[args_start:]
     return ""
-    
+
 def _getArgsNum(ea):
     args = _getArgsDescription(ea)
     if not args:
@@ -162,7 +162,7 @@ def _getArgsNum(ea):
             continue
         args_num += 1
     return args_num
-    
+
 # --------------------------------------------------------------------------
 # custom data types:
 # --------------------------------------------------------------------------
@@ -188,13 +188,13 @@ class DataManager(QObject):
 
     def setCurrentRva(self, rva):
         if rva is None:
-            rva = long(BADADDR) 
+            rva = long(BADADDR)
         self.currentRva = long(rva)
         self.updateSignal.emit()
 
     def refreshData(self):
         self.updateSignal.emit()
- 
+
 # --------------------------------------------------------------------------
 
 class FunctionInfo_t():
@@ -348,9 +348,9 @@ class TableModel_t(QtCore.QAbstractTableModel):
             return None
         col = index.column()
         row = index.row()
-        
+
         func_info = self.function_info_list[row]
-        
+
         if role == QtCore.Qt.UserRole:
             if col == self.COL_END:
                 return func_info.end
@@ -420,10 +420,10 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
     def _getForeignFuncName(self, row):
         """Retrieves a name of the foreign function or the details on the referenced address.
         """
-        
+
         curr_ref_fromaddr = self.refs_list[row][0] #fromaddr
         curr_ref_addr = self.refs_list[row][1] #toaddr
-        
+
         target_addr = self._getTargetAddr(row)
         if GetMnem(target_addr) != "":
             func_name = _getFunctionNameAt(target_addr)
@@ -439,7 +439,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         """
 
         if len(self.refs_list) <= row:
-            return None    
+            return None
         curr_ref_fromaddr = self.refs_list[row][0] #fromaddr
         curr_ref_addr = self.refs_list[row][1] #toaddr
         if col == self.COL_ADDR:
@@ -459,15 +459,15 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         if col == self.COL_TOADDR:
             return self.refs_list[row][1]
         return BADADDR
-        
+
     def _displayBackground(self, row, col):
         """Retrieves a background color appropriate for the data.
         """
-        
+
         if self.isFollowable(col):
             return QtGui.QColor("lightblue")
         return None
-      
+
 #public:
     def __init__(self, function_info_list, is_refs_to=True, parent=None, *args):
         super(RefsTableModel_t, self).__init__()
@@ -475,7 +475,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         self.curr_index = (-1)
         self.refs_list = []
         self.is_refs_to = is_refs_to
-        
+
     def isFollowable(self, col):
         """Is the address possible to follow in the disassembly view?
         """
@@ -484,11 +484,11 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         if col == self.COL_TOADDR:
             return True
         return False
-        
+
     def findOffsetIndex(self, data):
         """Serches the given address on the list of functions and returns it if found.
         """
-        
+
         index = 0
         for func_info in self.function_info_list:
             if data >= func_info.start and data <= func_info.end:
@@ -518,15 +518,15 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
 
     def columnCount(self, parent):
         return self.COL_COUNT
-    
+
     def data(self, index, role):
         if not index.isValid():
             return None
         col = index.column()
         row = index.row()
-        
+
         curr_ref_addr = self.refs_list[row][0]
-        
+
         if role == QtCore.Qt.UserRole:
           if self.isFollowable(col):
             return self._getAddrToFollow(row, col)
@@ -551,19 +551,19 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
 
 # --------------------------------------------------------------------------
 # custom views:
-  
+
 COLOR_NORMAL = 0xFFFFFF
 
 class FunctionsView_t(QtWidgets.QTableView):
     """The top view: listing all the functions.
     """
 
-    # private    
+    # private
     def _set_segment_color(self, ea, color):
         seg = idaapi.getseg(ea)
         seg.color = COLOR_NORMAL
         seg.update()
-   
+
     # public
     def __init__(self, dataManager, color_hilight, func_model, parent=None):
         super(FunctionsView_t, self).__init__(parent=parent)
@@ -576,12 +576,12 @@ class FunctionsView_t(QtWidgets.QTableView):
         #
         self.setMouseTracking(True)
         self.setAutoFillBackground(True)
-        
+
     #Qt API
     def currentChanged(self, current, previous):
         index_data = self.get_index_data(current)
         self.dataManager.setCurrentRva(index_data)
-        
+
     def hilight_addr(self, addr):
         if self.prev_addr != BADADDR:
             ea = self.prev_addr
@@ -592,7 +592,7 @@ class FunctionsView_t(QtWidgets.QTableView):
             self._set_segment_color(ea, COLOR_NORMAL)
             SetColor(addr, CIC_ITEM, self.color_hilight)
         self.prev_addr = addr
-        
+
     def get_index_data(self, index):
         if not index.isValid():
             return None
@@ -606,19 +606,19 @@ class FunctionsView_t(QtWidgets.QTableView):
         if not type(index_data) is long:
             return None
         return index_data
-        
+
     def mousePressEvent(self, event):
         event.accept()
         index = self.indexAt(event.pos())
         data = self.get_index_data(index)
         super(QtWidgets.QTableView, self).mousePressEvent(event)
-      
+
     def mouseDoubleClickEvent(self, event):
         event.accept()
         index = self.indexAt(event.pos())
         if not index.isValid():
             return
-        data = self.get_index_data(index)  
+        data = self.get_index_data(index)
         if not data:
             super(QtWidgets.QTableView, self).mouseDoubleClickEvent(event)
             return
@@ -627,7 +627,7 @@ class FunctionsView_t(QtWidgets.QTableView):
             self.hilight_addr(data)
             Jump(data)
         super(QtWidgets.QTableView, self).mouseDoubleClickEvent(event)
-        
+
     def mouseMoveEvent(self, event):
         index = self.indexAt(event.pos())
         if not index.isValid():
@@ -637,25 +637,25 @@ class FunctionsView_t(QtWidgets.QTableView):
             self.setCursor(QtCore.Qt.PointingHandCursor)
         else:
             self.setCursor(QtCore.Qt.ArrowCursor)
-        
+
     def leaveEvent(self, event):
         self.setCursor(QtCore.Qt.ArrowCursor)
-        
+
     def OnDestroy(self):
         self.hilight_addr(BADADDR)
-        
+
 # --------------------------------------------------------------------------
 
 class FunctionsMapper_t(QObject):
     """The class keeping the mapping of all the functions.
     """
-    
+
     #private
 
     def _isImportStart(self, start):
         """Check if the given function is imported or internal.
         """
-        
+
         if start in self._importsSet:
             return True
         if GetMnem(start) == 'call':
@@ -669,7 +669,7 @@ class FunctionsMapper_t(QObject):
     def imports_names_callback(self, ea, name, ord):
         """A callback adding a particular name and offset to the internal set of the imported functions.
         """
-        
+
         self._importsSet.add(ea)
         self._importNamesSet.add(name)
         # True -> Continue enumeration
@@ -684,7 +684,7 @@ class FunctionsMapper_t(QObject):
         nimps = idaapi.get_import_module_qty()
         for i in xrange(0, nimps):
             idaapi.enum_import_names(i, self.imports_names_callback)
-            
+
     def _isImportName(self, name):
         """Checks if the given name belongs to the imported function with the help of internal set.
         """
@@ -700,7 +700,7 @@ class FunctionsMapper_t(QObject):
           start : The function's start offset.
 
         Returns:
-          list : A list of tuples. 
+          list : A list of tuples.
             Each tuple represents: the offsets:
             0 : the offset from where the given function was referenced by the foreign function
             1 : the function's start address
@@ -717,7 +717,7 @@ class FunctionsMapper_t(QObject):
     def _getCallingOffset(self, func, called_list):
         """Lists the offsets from where the given function references the list of other function.
         """
-        
+
         start = GetFunctionAttr(func, FUNCATTR_START)
         end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
         func_name = _getFunctionNameAt(start)
@@ -734,29 +734,29 @@ class FunctionsMapper_t(QObject):
 
     def _listRefsFrom(self, func, start, end):
         """Make a list of all the references made from the given function.
-            
+
         Args:
           func : The function inside of which we are searching.
           start : The function's start offset.
           end : The function's end offset.
 
         Returns:
-          list : A list of tuples. Each tuple represents: 
+          list : A list of tuples. Each tuple represents:
             0 : the offset from where the given function referenced the other entity
             1 : the address that was referenced
         """
-    
+
         dif = end - start
         called_list = []
         func_name = _getFunctionNameAt(start)
-        
+
         for indx in xrange(0, dif):
           addr = start + indx
           func_refs_from = XrefsFrom(addr, 1)
           for ref in func_refs_from:
             if _getFunctionNameAt(ref.to) == func_name:
               #skip jumps inside self
-              continue 
+              continue
             called_list.append(ref.to)
         calling_list = self._getCallingOffset(func, called_list)
         return calling_list
@@ -769,9 +769,9 @@ class FunctionsMapper_t(QObject):
       for func in Functions():
         start = GetFunctionAttr(func, FUNCATTR_START)
         end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
-        
+
         is_import = self._isImportStart(start)
-        
+
         refs_list = self._listRefsTo(start)
         calling_list = self._listRefsFrom(func, start, end)
 
@@ -779,18 +779,18 @@ class FunctionsMapper_t(QObject):
         self._functionsMap[va_to_rva(start)] = func_info
         self._functionsMap[va_to_rva(end)] = func_info
         self.funcList.append(func_info)
-        
+
     # public
     def __init__(self, parent=None):
         super(FunctionsMapper_t, self).__init__(parent=parent)
         self._functionsMap = dict()
         self.funcList = [] #public
         self._loadLocals()
-        
+
     def funcAt(self, rva):
         func_info = self._functionsMap[rva]
         return func_info
-        
+
 
 class FunctionsListForm_t(PluginForm):
     """The main form of the IFL plugin.
@@ -810,11 +810,11 @@ class FunctionsListForm_t(PluginForm):
             start = GetFunctionAttr(func, FUNCATTR_START)
             fn_list.append(start)
         return fn_list
-        
+
     def _saveFunctionsNames(self, file_name):
         """Saves functions names and offsets from the internal mappings into a CSV file.
         """
-    
+
         if file_name is None or len(file_name) == 0:
             return False
         delim = ","
@@ -824,18 +824,18 @@ class FunctionsListForm_t(PluginForm):
             func_name = _getFunctionNameAt(start)
             start_rva = va_to_rva(start)
             line = "%lx%c%s" %(start_rva, delim, func_name)
-            fn_list.append(line)   
+            fn_list.append(line)
         idaapi.msg(str(file_name))
         with open(file_name, 'w') as f:
             for item in fn_list:
                 f.write("%s\n" % item)
-            return True     
+            return True
         return False
 
     def _loadFunctionsNames(self, file_name):
         """Loads functions names from the given CSV file into the internal mappings.
         """
-        
+
         if file_name is None or len(file_name) == 0:
             return False
         curr_functions = self._listFunctionsAddr()
@@ -854,7 +854,7 @@ class FunctionsListForm_t(PluginForm):
                 func_name = fn[1].strip()
                 if start < idaapi.get_imagebase(): # it is RVA
                     start = rva_to_va(start) # convert to VA
-                
+
                 if start in curr_functions:
                     if self.subDataManager.setFunctionName(start, func_name) == True:
                         loaded += 1
@@ -862,21 +862,21 @@ class FunctionsListForm_t(PluginForm):
                     MakeRptCmt(start, func_name) #set the name as a comment
 
         return loaded
-    
+
     def _setup_sorted_model(self, view, model):
         """Connects the given sorted data model with the given view.
         """
 
-        sorted_model = QtCore.QSortFilterProxyModel()    
+        sorted_model = QtCore.QSortFilterProxyModel()
         sorted_model.setDynamicSortFilter(True)
         sorted_model.setSourceModel(model)
         view.setModel(sorted_model)
         view.setSortingEnabled(True)
         #
-        sorted_model.setParent(view)        
+        sorted_model.setParent(view)
         model.setParent(sorted_model)
         return sorted_model
-        
+
     def _update_current_offset(self, view, refs_model, offset):
         """Update the given data model to follow given offset.
         """
@@ -889,7 +889,7 @@ class FunctionsListForm_t(PluginForm):
         refs_model.reset()
         view.reset()
         view.repaint()
-    
+
     def _update_function_name(self, ea):
         """Sets on the displayed label the name of the function and it's arguments.
         """
@@ -898,7 +898,7 @@ class FunctionsListForm_t(PluginForm):
             func_info = self.funcMapper.funcAt(va_to_rva(ea))
         except KeyError:
             return
-            
+
         func_type = func_info.type
         func_args = _getArgsDescription(ea)
         func_name = _getFunctionNameAt(ea)
@@ -907,7 +907,7 @@ class FunctionsListForm_t(PluginForm):
     def _update_ref_tabs(self, ea):
         """Sets on the tabs headers the numbers of references to the selected function.
         """
-    
+
         tocount = 0
         fromcount = 0
         try:
@@ -922,7 +922,7 @@ class FunctionsListForm_t(PluginForm):
     def adjustColumnsToContents(self):
         """Adjusts columns' sizes to fit the data.
         """
-    
+
         self.addr_view.resizeColumnToContents(0)
         self.addr_view.resizeColumnToContents(1)
         self.addr_view.resizeColumnToContents(2)
@@ -944,12 +944,12 @@ class FunctionsListForm_t(PluginForm):
         """
 
         if not data:
-            return  
+            return
         self._update_current_offset(self.refs_view, self.refsto_model, data)
         self._update_current_offset(self.refsfrom_view, self.refsfrom_model, data)
         self._update_ref_tabs(data)
         self._update_function_name(data)
-        
+
     def filterByColumn(self, col_num, str):
         """Applies a filter defined by the string on data model.
         """
@@ -960,17 +960,17 @@ class FunctionsListForm_t(PluginForm):
             filter_type = QtCore.QRegExp.RegExp
         self.addr_sorted_model.setFilterRegExp(QtCore.QRegExp(str, sensitivity, filter_type));
         self.addr_sorted_model.setFilterKeyColumn(col_num)
-        
+
     def filterChanged(self):
         """A wrapper for the function: filterByColumn(self, col_num, str)
         """
 
         self.filterByColumn(self.filter_combo.currentIndex(), self.filter_edit.text() )
-        
+
     def criteriumChanged(self):
         """A callback executed when the criterium of sorting has changed and the data has to be sorted again.
         """
-    
+
         self.criterium_id = self.criterium_combo.currentIndex()
         if self.criterium_id == 0:
             self.filter_edit.setPlaceholderText("keyword")
@@ -981,21 +981,21 @@ class FunctionsListForm_t(PluginForm):
     def OnCreate(self, form):
         """Called when the plugin form is created
         """
-        
+
         #init data structures:
         self.funcMapper = FunctionsMapper_t()
         self.criterium_id = 0
-        
+
         # Get parent widget
         self.parent = self.FormToPyQtWidget(form)
-        
+
         # Create models
         self.subDataManager = DataManager()
 
         self.table_model = TableModel_t(self.funcMapper.funcList)
-        
+
         #init
-        self.addr_sorted_model = QtCore.QSortFilterProxyModel()    
+        self.addr_sorted_model = QtCore.QSortFilterProxyModel()
         self.addr_sorted_model.setDynamicSortFilter(True)
         self.addr_sorted_model.setSourceModel(self.table_model)
         self.addr_view = FunctionsView_t(g_DataManager, self._COLOR_HILIGHT_FUNC, self.table_model)
@@ -1005,7 +1005,7 @@ class FunctionsListForm_t(PluginForm):
         self.addr_view.setAlternatingRowColors(True)
         self.addr_view.horizontalHeader().setStretchLastSection(False);
         self.addr_view.verticalHeader().show()
-    
+
         self.adjustColumnsToContents()
         #
         self.refsto_model = RefsTableModel_t(self.funcMapper.funcList, True)
@@ -1014,7 +1014,7 @@ class FunctionsListForm_t(PluginForm):
         self.refs_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
         self.refs_view.setWordWrap(False)
         self.refs_view.setAlternatingRowColors(True)
-        
+
         font = self.refs_view.font()
         font.setPointSize(8)
         self.refs_view.setFont(font)
@@ -1025,37 +1025,37 @@ class FunctionsListForm_t(PluginForm):
         self.refsfrom_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
         self.refsfrom_view.setWordWrap(False)
         self.refsfrom_view.setAlternatingRowColors(True)
-        
+
         #important for proper order of objects destruction:
         self.table_model.setParent(self.addr_sorted_model)
         self.addr_sorted_model.setParent(self.addr_view)
 
         # connect SIGNAL
         g_DataManager.updateSignal.connect(self.longoperationcomplete)
-        
+
         # Create a Tab widget for references:
         self.refs_tabs = QtWidgets.QTabWidget()
         self.refs_tabs.insertTab(0, self.refs_view, "Is refered by")
         self.refs_tabs.insertTab(1, self.refsfrom_view, "Refers to")
-        
+
         # Create filter
         self.filter_edit = QtWidgets.QLineEdit()
         self.filter_edit.setPlaceholderText("keyword")
         self.filter_edit.textChanged.connect(self.filterChanged)
-        
+
         self.filter_combo = QtWidgets.QComboBox()
         self.filter_combo.addItems(TableModel_t.header_names)
         self.filter_combo.setCurrentIndex(TableModel_t.COL_NAME)
         #connect SIGNAL
         self.filter_combo.activated.connect(self.filterChanged)
-        
+
         self.criterium_combo = QtWidgets.QComboBox()
         criteria = ["contains", "matches"]
         self.criterium_combo.addItems(criteria)
         self.criterium_combo.setCurrentIndex(0)
         #connect SIGNAL
         self.criterium_combo.activated.connect(self.criteriumChanged)
-        
+
 
         filter_panel = QtWidgets.QFrame()
         filter_layout = QtWidgets.QHBoxLayout()
@@ -1063,7 +1063,7 @@ class FunctionsListForm_t(PluginForm):
         filter_layout.addWidget(self.filter_combo)
         filter_layout.addWidget(self.criterium_combo)
         filter_layout.addWidget(self.filter_edit)
-        
+
         filter_panel.setLayout(filter_layout)
         self.filter_edit.setFixedHeight(20)
         filter_panel.setFixedHeight(40)
@@ -1072,28 +1072,28 @@ class FunctionsListForm_t(PluginForm):
         self.refs_label = QtWidgets.QLabel("Function")
         self.refs_label.setTextFormat(QtCore.Qt.RichText)
         self.refs_label.setWordWrap(True)
-        
+
         panel1 = QtWidgets.QFrame()
         layout1 = QtWidgets.QVBoxLayout()
         panel1.setLayout(layout1)
-        
+
         layout1.addWidget(filter_panel)
-        layout1.addWidget(self.addr_view)      
+        layout1.addWidget(self.addr_view)
         layout1.setContentsMargins(0,0,0,0)
 
         panel2 = QtWidgets.QFrame()
         layout2 = QtWidgets.QVBoxLayout()
         layout2.addWidget(self.refs_label)
         layout2.addWidget(self.refs_tabs)
-        layout2.addWidget(self._makeButtonsPanel())  
+        layout2.addWidget(self._makeButtonsPanel())
         layout2.setContentsMargins(0,10,0,0)
         panel2.setLayout(layout2)
-        
+
         self.main_splitter = QtWidgets.QSplitter()
         self.main_splitter.setOrientation(QtCore.Qt.Vertical)
         self.main_splitter.addWidget(panel1)
         self.main_splitter.addWidget(panel2)
-        
+
         # Populate PluginForm
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.main_splitter)
@@ -1102,7 +1102,7 @@ class FunctionsListForm_t(PluginForm):
         self.parent.setLayout(layout)
 
         idaapi.set_dock_pos(PLUGIN_NAME, "IDA HExview-1", idaapi.DP_RIGHT)
-    
+
     def _makeButtonsPanel(self):
         """Creates on the form's bottom the panel with buttons.
         """
@@ -1110,20 +1110,20 @@ class FunctionsListForm_t(PluginForm):
         buttons_panel = QtWidgets.QFrame()
         buttons_layout = QtWidgets.QHBoxLayout()
         buttons_panel.setLayout(buttons_layout)
-        
+
         importButton = QtWidgets.QPushButton("Load names")
         importButton.clicked.connect(self.importNames)
         buttons_layout.addWidget(importButton)
-        
+
         exportButton = QtWidgets.QPushButton("Save names")
         exportButton.clicked.connect(self.exportNames)
         buttons_layout.addWidget(exportButton)
         return buttons_panel
-        
+
     def importNames(self):
         """Imports functions list from a CSV file.
         """
-    
+
         file_name, ext = QtWidgets.QFileDialog.getOpenFileName( None, "Export functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TXT Files (*.txt);;All files (*)")
         if file_name is not None and len(file_name) > 0 :
             loaded = self._loadFunctionsNames(file_name)
@@ -1131,22 +1131,22 @@ class FunctionsListForm_t(PluginForm):
                 idaapi.warning("Failed importing functions names! Not matching offsets!")
             else:
                 idaapi.info("Imported %d function names " % (loaded))
-                
+
     def exportNames(self):
         """Exports functions list to a CSV file.
         """
-    
+
         file_name, ext = QtWidgets.QFileDialog.getSaveFileName( None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv)")
         if file_name is not None and len(file_name) > 0 :
             if self._saveFunctionsNames(file_name) == False:
                 idaapi.warning("Failed exporting functions names!")
             else:
                 idaapi.info("Exported to: "+ file_name)
-        
+
     def OnClose(self, form):
         """Called when the plugin form is closed
         """
-    
+
         #clear last selection
         self.addr_view.hilight_addr(BADADDR)
         self.refs_view.hilight_addr(BADADDR)
@@ -1175,7 +1175,7 @@ class IFLMenuHandler(idaapi.action_handler_t):
         return 1
 
     def update(self, ctx):
-        return idaapi.AST_ENABLE_ALWAYS    
+        return idaapi.AST_ENABLE_ALWAYS
 
 # --------------------------------------------------------------------------
 
@@ -1209,7 +1209,6 @@ class funclister_t(idaapi.plugin_t):
     wanted_hotkey = ''
 
     def init(self):
-
         idaapi.register_action(idaapi.action_desc_t(
             'ifl:open',  #action name
             PLUGIN_NAME,
@@ -1233,5 +1232,7 @@ class funclister_t(idaapi.plugin_t):
         pass
 
 def PLUGIN_ENTRY():
-    return funclister_t()
+    return funclister_t().init()
 
+if __name__ == "__main__":
+    PLUGIN_ENTRY()
