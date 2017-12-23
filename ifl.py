@@ -1232,7 +1232,7 @@ class funclister_t(idaapi.plugin_t):
         pass
 
 def PLUGIN_ENTRY():
-    return funclister_t().init()
+    return funclister_t()
 
 if __name__ == "__main__":
     PLUGIN_ENTRY()
