@@ -800,6 +800,7 @@ class FunctionsListForm_t(PluginForm):
     _COLOR_HILIGHT_FUNC = 0xFFDDBB # BBGGRR
     _COLOR_HILIGHT_REFTO = 0xBBFFBB
     _COLOR_HILIGHT_REFFROM = 0xDDBBFF
+    _LIVE_FILTER = True
 
     def _listFunctionsAddr(self):
         """Lists all the starting addresses of the functions using IDA API.
@@ -964,8 +965,15 @@ class FunctionsListForm_t(PluginForm):
     def filterChanged(self):
         """A wrapper for the function: filterByColumn(self, col_num, str)
         """
-
+        
         self.filterByColumn(self.filter_combo.currentIndex(), self.filter_edit.text() )
+        
+    def filterKeyEvent(self, event = None):
+        if event != None:
+            QtWidgets.QLineEdit.keyReleaseEvent(self.filter_edit, event)
+        if event and (self.is_livefilter == False and event.key() != QtCore.Qt.Key_Enter and event.key() != QtCore.Qt.Key_Return):
+            return
+        self.filterChanged()
 
     def criteriumChanged(self):
         """A callback executed when the criterium of sorting has changed and the data has to be sorted again.
@@ -977,6 +985,11 @@ class FunctionsListForm_t(PluginForm):
         else:
             self.filter_edit.setPlaceholderText("regex")
         self.filterChanged()
+        
+    def liveSearchCheckBox(self):
+        self.is_livefilter = self.livefilter_box.isChecked()
+        if self.is_livefilter :
+            self.filterByColumn(self.filter_combo.currentIndex(), self.filter_edit.text() )
 
     def OnCreate(self, form):
         """Called when the plugin form is created
@@ -1026,6 +1039,14 @@ class FunctionsListForm_t(PluginForm):
         self.refsfrom_view.setWordWrap(False)
         self.refsfrom_view.setAlternatingRowColors(True)
 
+        #add a box to enable/disable live filtering
+        self.livefilter_box = QtWidgets.QCheckBox("Live filtering")
+        self.livefilter_box.setToolTip("If live filtering is enabled, functions are searched as you type in the edit box.\nOtherwise they are searched when you press Enter.")
+        self.livefilter_box.setChecked(self._LIVE_FILTER)
+        self.is_livefilter = self._LIVE_FILTER
+        #connect SIGNAL
+        self.livefilter_box.stateChanged.connect(self.liveSearchCheckBox)
+   
         #important for proper order of objects destruction:
         self.table_model.setParent(self.addr_sorted_model)
         self.addr_sorted_model.setParent(self.addr_view)
@@ -1041,7 +1062,7 @@ class FunctionsListForm_t(PluginForm):
         # Create filter
         self.filter_edit = QtWidgets.QLineEdit()
         self.filter_edit.setPlaceholderText("keyword")
-        self.filter_edit.textChanged.connect(self.filterChanged)
+        self.filter_edit.keyReleaseEvent = self.filterKeyEvent
 
         self.filter_combo = QtWidgets.QComboBox()
         self.filter_combo.addItems(TableModel_t.header_names)
@@ -1056,7 +1077,6 @@ class FunctionsListForm_t(PluginForm):
         #connect SIGNAL
         self.criterium_combo.activated.connect(self.criteriumChanged)
 
-
         filter_panel = QtWidgets.QFrame()
         filter_layout = QtWidgets.QHBoxLayout()
         filter_layout.addWidget(QtWidgets.QLabel("Where "))
@@ -1068,6 +1088,7 @@ class FunctionsListForm_t(PluginForm):
         self.filter_edit.setFixedHeight(20)
         filter_panel.setFixedHeight(40)
         filter_panel.setAutoFillBackground(True)
+        
         #
         self.refs_label = QtWidgets.QLabel("Function")
         self.refs_label.setTextFormat(QtCore.Qt.RichText)
@@ -1078,6 +1099,7 @@ class FunctionsListForm_t(PluginForm):
         panel1.setLayout(layout1)
 
         layout1.addWidget(filter_panel)
+        layout1.addWidget(self.livefilter_box)
         layout1.addWidget(self.addr_view)
         layout1.setContentsMargins(0,0,0,0)
 
