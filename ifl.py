@@ -1041,6 +1041,7 @@ class FunctionsListForm_t(PluginForm):
 
         #add a box to enable/disable live filtering
         self.livefilter_box = QtWidgets.QCheckBox("Live filtering")
+        self.livefilter_box.setToolTip("If live filtering is enabled, functions are searched as you type in the edit box.\nOtherwise they are searched when you press Enter.")
         self.livefilter_box.setChecked(self._LIVE_FILTER)
         self.is_livefilter = self._LIVE_FILTER
         #connect SIGNAL
