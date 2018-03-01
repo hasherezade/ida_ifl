@@ -15,7 +15,6 @@ __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
 PLUGIN_HOTKEY = "Ctrl-Alt-F"
-LIVE_FILTER = True
 
 import idautils
 from idaapi import *
@@ -801,6 +800,7 @@ class FunctionsListForm_t(PluginForm):
     _COLOR_HILIGHT_FUNC = 0xFFDDBB # BBGGRR
     _COLOR_HILIGHT_REFTO = 0xBBFFBB
     _COLOR_HILIGHT_REFFROM = 0xDDBBFF
+    _LIVE_FILTER = True
 
     def _listFunctionsAddr(self):
         """Lists all the starting addresses of the functions using IDA API.
@@ -1041,8 +1041,8 @@ class FunctionsListForm_t(PluginForm):
 
         #add a box to enable/disable live filtering
         self.livefilter_box = QtWidgets.QCheckBox("Live filtering")
-        self.livefilter_box.setChecked(LIVE_FILTER)
-        self.is_livefilter = LIVE_FILTER
+        self.livefilter_box.setChecked(self._LIVE_FILTER)
+        self.is_livefilter = self._LIVE_FILTER
         #connect SIGNAL
         self.livefilter_box.stateChanged.connect(self.liveSearchCheckBox)
    
