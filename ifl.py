@@ -1155,11 +1155,14 @@ class FunctionsListForm_t(PluginForm):
 
         file_name, ext = QtWidgets.QFileDialog.getOpenFileName( None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag);;All files (*)")
         if file_name is not None and len(file_name) > 0 :
-            (loaded, comments) = self._loadFunctionsNames(file_name, ext)
-            if loaded == 0 and comments == 0:
-                idaapi.warning("Failed importing functions names! Not matching offsets!")
-            else:
-                idaapi.info("Imported %d function names and %d comments" % (loaded, comments))
+            try:
+                (loaded, comments) = self._loadFunctionsNames(file_name, ext)
+                if loaded == 0 and comments == 0:
+                    idaapi.warning("Failed importing functions names! Not matching offsets!")
+                else:
+                    idaapi.info("Imported %d function names and %d comments" % (loaded, comments))
+            except ValueError as e:
+                idaapi.warning("Malformed file: %s" % e)
 
     def exportNames(self):
         """Exports functions list into a file.
