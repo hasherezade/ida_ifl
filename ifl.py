@@ -854,9 +854,9 @@ class FunctionsListForm_t(PluginForm):
             for line in f.readlines():
                 line = line.strip()
                 fn = line.split(delim)
-                if len(fn) != 2:
+                if len(fn) < 2:
                     fn = line.split(delim2) # try old delimiter
-                if len(fn) != 2:
+                if len(fn) < 2:
                     continue
                 start = int(fn[0].strip(), 16)
                 func_name = fn[1].strip()
