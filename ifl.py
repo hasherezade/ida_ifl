@@ -1150,10 +1150,10 @@ class FunctionsListForm_t(PluginForm):
         return buttons_panel
 
     def importNames(self):
-        """Imports functions list from a CSV file.
+        """Imports functions list from a file.
         """
 
-        file_name, ext = QtWidgets.QFileDialog.getOpenFileName( None, "Export functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag);;All files (*)")
+        file_name, ext = QtWidgets.QFileDialog.getOpenFileName( None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag);;All files (*)")
         if file_name is not None and len(file_name) > 0 :
             (loaded, comments) = self._loadFunctionsNames(file_name, ext)
             if loaded == 0 and comments == 0:
@@ -1162,10 +1162,10 @@ class FunctionsListForm_t(PluginForm):
                 idaapi.info("Imported %d function names and %d comments" % (loaded, comments))
 
     def exportNames(self):
-        """Exports functions list to a CSV file.
+        """Exports functions list into a file.
         """
 
-        file_name, ext = QtWidgets.QFileDialog.getSaveFileName( None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag)")
+        file_name, ext = QtWidgets.QFileDialog.getSaveFileName( None, "Export functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag)")
         if file_name is not None and len(file_name) > 0 :
             if self._saveFunctionsNames(file_name, ext) == False:
                 idaapi.warning("Failed exporting functions names!")
