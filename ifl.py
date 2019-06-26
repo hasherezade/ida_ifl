@@ -8,7 +8,7 @@
 # or press: PLUGIN_HOTKEY
 #
 """
-CC-BY: hasherezade, 2015-2017, run via IDA Pro >= 7.0
+CC-BY: hasherezade, run via IDA Pro >= 7.0
 """
 __VERSION__ = '1.3.3'
 __AUTHOR__ = 'hasherezade'
