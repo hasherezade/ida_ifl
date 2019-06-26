@@ -2,7 +2,7 @@
 #
 # IFL - Interactive Functions List
 #
-# how to install: copy the script into plugins directory, i.e: C:\Program Files\IDA 6.8\plugins
+# how to install: copy the script into plugins directory, i.e: C:\Program Files\IDA <version>\plugins
 # then:
 # run from IDA menu: View -> PLUGIN_NAME
 # or press: PLUGIN_HOTKEY
