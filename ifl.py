@@ -25,7 +25,7 @@ from idaapi import PluginForm
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
-from typing import Optional, List, Tuple, Any
+from typing import Optional, List, Tuple, Any, Union
 
 VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://github.com/hasherezade/ida_ifl"
 
@@ -274,7 +274,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
             return self.header_names[self.COL_IMPORT]
         return None
 
-    def _displayData(self, row: int, col: int) -> Optional[str]:
+    def _displayData(self, row: int, col: int) -> Optional[Union[int, str]]:
         func_info = self.function_info_list[row]
         if col == self.COL_START:
             return "%08x" % func_info.start
@@ -287,9 +287,9 @@ class TableModel_t(QtCore.QAbstractTableModel):
         if col == self.COL_NAME:
             return _getFunctionNameAt(func_info.start)
         if col == self.COL_REFS:
-            return str(len(func_info.refs_list))
+            return len(func_info.refs_list)
         if col == self.COL_CALLED:
-            return str(len(func_info.called_list))
+            return len(func_info.called_list)
         if col == self.COL_IMPORT:
             if func_info.is_import:
                 return "+"
