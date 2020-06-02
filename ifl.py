@@ -603,7 +603,7 @@ class FunctionsView_t(QtWidgets.QTableView):
             set_color(addr, CIC_ITEM, self.color_hilight)
         self.prev_addr = addr
 
-    def get_index_data(self, index: Any) -> None:
+    def get_index_data(self, index: Any) -> Any:
         if not index.isValid():
             return None
         try:
@@ -844,13 +844,13 @@ class FunctionsListForm_t(PluginForm):
             return True
         return False
 
-    def _loadFunctionsNames(self, file_name: Optional[str], ext: str) -> Tuple[int, int]:
+    def _loadFunctionsNames(self, file_name: Optional[str], ext: str) -> Optional[Tuple[int, int]]:
         """Loads functions names from the given file into the internal mappings.
         Fromats: CSV (default), or TAG (PE-bear, PE-sieve compatibile).
         """
 
         if file_name is None or len(file_name) == 0:
-            return False
+            return None
         curr_functions = self._listFunctionsAddr()
         delim = "," # new delimiter (for CSV format)
         delim2 = ":" # old delimiter
@@ -875,7 +875,7 @@ class FunctionsListForm_t(PluginForm):
                     if self.subDataManager.setFunctionName(start, func_name) == True:
                         functions += 1
                 else:
-                    MakeRptCmt(start, func_name) #set the name as a comment
+                    set_cmt(start, func_name, 1) #set the name as a comment
                     comments += 1
         return (functions, comments)
 
@@ -1163,14 +1163,16 @@ class FunctionsListForm_t(PluginForm):
 
         file_name, ext = QtWidgets.QFileDialog.getOpenFileName( None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag);;All files (*)")
         if file_name is not None and len(file_name) > 0:
-            try:
-                (loaded, comments) = self._loadFunctionsNames(file_name, ext)
-                if loaded == 0 and comments == 0:
-                    idaapi.warning("Failed importing functions names! Not matching offsets!")
-                else:
-                    idaapi.info("Imported %d function names and %d comments" % (loaded, comments))
-            except ValueError as e:
-                idaapi.warning("Malformed file: %s" % e)
+            names = self._loadFunctionsNames(file_name, ext)
+            if names is None:
+                idaapi.warning("Malformed file %s" % file_name)
+                return
+
+            (loaded, comments) = names
+            if loaded == 0 and comments == 0:
+                idaapi.warning("Failed importing functions names! Not matching offsets!")
+            else:
+                idaapi.info("Imported %d function names and %d comments" % (loaded, comments))
 
     def exportNames(self) -> None:
         """Exports functions list into a file.
