@@ -42,7 +42,7 @@ def va_to_rva(va):
 def function_at(ea):
     start = ea
     functions = Functions(start)
-    for func in Functions():
+    for func in functions:
         return func
     return None
 
