@@ -25,6 +25,8 @@ from idaapi import PluginForm
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
+from typing import Optional
+
 VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://github.com/hasherezade/ida_ifl"
 
 # --------------------------------------------------------------------------
@@ -45,12 +47,10 @@ def va_to_rva(va: int) -> int:
 def function_at(ea: int) -> Optional[int]:
     start = ea
     functions = Functions(start)
-    for func in Functions():
-        return func
-    return None
+    return next(functions, None)
 
 
-def parse_function_args(ea):
+def parse_function_args(ea: int) -> str:
     local_variables = [ ]
     arguments = [ ]
     current = local_variables
@@ -86,13 +86,14 @@ def parse_function_args(ea):
         args_str = "void"
     return "(" + args_str + ")"
 
-def parse_function_type(ea, end=None):
+
+def parse_function_type(ea: int, end: Optional[int] = None) -> str:
     frame = idc.get_func_attr(ea, FUNCATTR_FRAME)
     if frame is None:
         return ""
-    if end is None: #try to find end
+    if end is None:  # try to find end
             func = function_at(ea)
-            if not func :
+            if not func:
                 return "?"
             end = prev_addr(get_func_attr(func, FUNCATTR_END))
     end_addr = end
@@ -112,28 +113,31 @@ def parse_function_type(ea, end=None):
 
     op = get_operand_type(end_addr, 0)
     if op == o_void:
-        #retn has NO parameters
+        # retn has NO parameters
         return "__cdecl"
-    #retn has parameters
+    # retn has parameters
     return "__stdcall"
 
-def _getFunctionType(start, end=None):
+
+def _getFunctionType(start: int, end: Optional[int] = None) -> str:
     type = get_type(start)
     if type is None:
         return parse_function_type(start, end)
     args_start = type.find('(')
-    if not args_start is None:
+    if args_start is not None:
         type = type[:args_start]
     return type
 
-def _isFunctionMangled(ea):
+
+def _isFunctionMangled(ea: int) -> bool:
     name = get_func_name(ea)
     disable_mask = get_inf_attr(INF_SHORT_DN)
     if demangle_name(name, disable_mask) is None:
         return False
     return True
 
-def _getFunctionNameAt(ea):
+
+def _getFunctionNameAt(ea: int) -> str:
     name = get_func_name(ea)
     disable_mask = get_inf_attr(INF_SHORT_DN)
     demangled_name = demangle_name(name, disable_mask)
@@ -144,18 +148,20 @@ def _getFunctionNameAt(ea):
         return demangled_name
     return demangled_name[:args_start]
 
-def _getArgsDescription(ea):
-    name = demangle_name(get_func_name(ea), get_inf_attr(INF_SHORT_DN)) #get from mangled name
+
+def _getArgsDescription(ea: int) -> str:
+    name = demangle_name(get_func_name(ea), get_inf_attr(INF_SHORT_DN))  # get from mangled name
     if not name:
-        name = get_type(ea) #get from type
+        name = get_type(ea)  # get from type
         if not name:
-            return parse_function_args(ea) #cannot get params from the mangled name
+            return parse_function_args(ea)  # cannot get params from the mangled name
     args_start = name.find('(')
     if args_start != None and args_start != (-1):
         return name[args_start:]
     return ""
 
-def _getArgsNum(ea):
+
+def _getArgsNum(ea: int) -> int:
     args = _getArgsDescription(ea)
     if not args:
         return 0
@@ -172,32 +178,31 @@ def _getArgsNum(ea):
 # custom data types:
 # --------------------------------------------------------------------------
 
-#Global DataManager
-
+# Global DataManager
 class DataManager(QObject):
     """Keeps track on the changes in data and signalizies them.
     """
 
     updateSignal = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         QtCore.QObject.__init__(self, parent=parent)
         self.currentRva = BADADDR
 
-    def setFunctionName(self, start, func_name):
+    def setFunctionName(self, start: int, func_name: str) -> bool:
         flags = idaapi.SN_NOWARN | idaapi.SN_NOCHECK
         if idc.set_name(start, func_name, flags):
             self.updateSignal.emit()
             return True
         return False
 
-    def setCurrentRva(self, rva):
+    def setCurrentRva(self, rva: Optional[int]) -> None:
         if rva is None:
             rva = BADADDR
         self.currentRva = rva
         self.updateSignal.emit()
 
-    def refreshData(self):
+    def refreshData(self) -> None:
         self.updateSignal.emit()
 
 # --------------------------------------------------------------------------
@@ -206,7 +211,7 @@ class FunctionInfo_t():
     """A class representing a single function's record.
     """
 
-    def __init__(self, start, end, refs_list, called_list, is_import=False):
+    def __init__(self, start: int, end: int, refs_list, called_list, is_import:bool = False) -> None:
         self.start = start
         self.end = end
         self.args_num = _getArgsNum(start)
@@ -215,7 +220,7 @@ class FunctionInfo_t():
         self.refs_list = refs_list
         self.called_list = called_list
 
-    def contains(self, addr):
+    def contains(self, addr: int) -> bool:
         """Check if the given address lies inside the function.
         """
         bng = self.start
@@ -224,7 +229,7 @@ class FunctionInfo_t():
         if self.start > self.end:
             end = self.start
             start = self.end
-        if addr >= bgn and  addr < end:
+        if addr >= bgn and addr < end:
             return True
         return False
 # --------------------------------------------------------------------------
@@ -591,11 +596,11 @@ class FunctionsView_t(QtWidgets.QTableView):
         if self.prev_addr != BADADDR:
             ea = self.prev_addr
             self._set_segment_color(ea, COLOR_NORMAL)
-            SetColor(ea, CIC_ITEM, COLOR_NORMAL)
+            set_color(ea, CIC_ITEM, COLOR_NORMAL)
         if addr != BADADDR:
             ea = addr
             self._set_segment_color(ea, COLOR_NORMAL)
-            SetColor(addr, CIC_ITEM, self.color_hilight)
+            set_color(addr, CIC_ITEM, self.color_hilight)
         self.prev_addr = addr
 
     def get_index_data(self, index):
@@ -628,7 +633,7 @@ class FunctionsView_t(QtWidgets.QTableView):
         col = index.column()
         if self.func_model.isFollowable(col):
             self.hilight_addr(data)
-            Jump(data)
+            jumpto(data)
         super(QtWidgets.QTableView, self).mouseDoubleClickEvent(event)
 
     def mouseMoveEvent(self, event):
