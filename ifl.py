@@ -51,24 +51,24 @@ def parse_function_args(ea):
     arguments = [ ]
     current = local_variables
 
-    frame = idc.GetFrame(ea)
+    frame = idc.get_func_attr(ea, FUNCATTR_FRAME)
     arg_string = ""
-    if frame == None:
+    if frame is None:
         return ""
 
-    start = idc.GetFirstMember(frame)
-    end = idc.GetLastMember(frame)
+    start = idc.get_first_member(frame)
+    end = idc.get_last_member(frame)
     count = 0
     max_count = 10000
     args_str = ""
     while start <= end and count <= max_count:
-        size = idc.GetMemberSize(frame, start)
+        size = idc.get_member_size(frame, start)
         count = count + 1
-        if size == None:
+        if size is None:
             start = start + 1
             continue
 
-        name = idc.GetMemberName(frame, start)
+        name = idc.get_member_name(frame, start)
         start += size
 
         if name in [" r", " s"]:
@@ -83,20 +83,20 @@ def parse_function_args(ea):
     return "(" + args_str + ")"
 
 def parse_function_type(ea, end=None):
-    frame = idc.GetFrame(ea)
-    if frame == None:
+    frame = idc.get_func_attr(ea, FUNCATTR_FRAME)
+    if frame is None:
         return ""
-    if end == None: #try to find end
+    if end is None: #try to find end
             func = function_at(ea)
             if not func :
                 return "?"
-            end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
+            end = prev_addr(get_func_attr(func, FUNCATTR_END))
     end_addr = end
     mnem = GetDisasm(end_addr)
 
     if not "ret" in mnem:
         #it's not a real end, get instruction before...
-        end_addr = PrevAddr(end)
+        end_addr = prev_addr(end)
         if end_addr == BADADDR:
             #cannot get the real end
             return ""
@@ -106,7 +106,7 @@ def parse_function_type(ea, end=None):
         #cannot get the real end
         return ""
 
-    op = GetOpType(end_addr, 0)
+    op = get_operand_type(end_addr, 0)
     if op == o_void:
         #retn has NO parameters
         return "__cdecl"
@@ -114,36 +114,36 @@ def parse_function_type(ea, end=None):
     return "__stdcall"
 
 def _getFunctionType(start, end=None):
-    type = GetType(start)
-    if type == None:
+    type = get_type(start)
+    if type is None:
         return parse_function_type(start, end)
     args_start = type.find('(')
-    if not args_start == None:
+    if not args_start is None:
         type = type[:args_start]
     return type
 
 def _isFunctionMangled(ea):
-    name = GetFunctionName(ea)
-    disable_mask = GetLongPrm(INF_SHORT_DN)
-    if Demangle(name, disable_mask) == None:
+    name = get_func_name(ea)
+    disable_mask = get_inf_attr(INF_SHORT_DN)
+    if demangle_name(name, disable_mask) is None:
         return False
     return True
 
 def _getFunctionNameAt(ea):
-    name = GetFunctionName(ea)
-    disable_mask = GetLongPrm(INF_SHORT_DN)
-    demangled_name = Demangle(name, disable_mask)
-    if demangled_name == None:
+    name = get_func_name(ea)
+    disable_mask = get_inf_attr(INF_SHORT_DN)
+    demangled_name = demangle_name(name, disable_mask)
+    if demangled_name is None:
         return name
     args_start = demangled_name.find('(')
-    if args_start == None:
+    if args_start is None:
         return demangled_name
     return demangled_name[:args_start]
 
 def _getArgsDescription(ea):
-    name = Demangle(GetFunctionName(ea), GetLongPrm(INF_SHORT_DN)) #get from mangled name
+    name = demangle_name(get_func_name(ea), get_inf_attr(INF_SHORT_DN)) #get from mangled name
     if not name:
-        name = GetType(ea) #get from type
+        name = get_type(ea) #get from type
         if not name:
             return parse_function_args(ea) #cannot get params from the mangled name
     args_start = name.find('(')
@@ -178,19 +178,19 @@ class DataManager(QObject):
 
     def __init__(self, parent=None):
         QtCore.QObject.__init__(self, parent=parent)
-        self.currentRva = long(BADADDR)
+        self.currentRva = BADADDR
 
     def setFunctionName(self, start, func_name):
         flags = idaapi.SN_NOWARN | idaapi.SN_NOCHECK
-        if idc.MakeNameEx(start, func_name, flags):
+        if idc.set_name(start, func_name, flags):
             self.updateSignal.emit()
             return True
         return False
 
     def setCurrentRva(self, rva):
         if rva is None:
-            rva = long(BADADDR)
-        self.currentRva = long(rva)
+            rva = BADADDR
+        self.currentRva = rva
         self.updateSignal.emit()
 
     def refreshData(self):
@@ -340,7 +340,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
             return False
         func_info = self.function_info_list[index.row()]
         if index.column() == self.COL_NAME:
-            MakeNameEx(func_info.start, str(content), SN_NOWARN)
+            set_name(func_info.start, str(content), SN_NOWARN)
             g_DataManager.refreshData()
         return True
 
@@ -426,7 +426,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         curr_ref_addr = self.refs_list[row][1] #toaddr
 
         target_addr = self._getTargetAddr(row)
-        if GetMnem(target_addr) != "":
+        if print_insn_mnem(target_addr) != "":
             func_name = _getFunctionNameAt(target_addr)
             if func_name:
                 return func_name
@@ -601,10 +601,8 @@ class FunctionsView_t(QtWidgets.QTableView):
             data_val = index.data(QtCore.Qt.UserRole)
             if data_val is None:
                 return None
-            index_data = long(data_val)
+            index_data = data_val
         except ValueError:
-            return None
-        if not type(index_data) is long:
             return None
         return index_data
 
@@ -659,10 +657,10 @@ class FunctionsMapper_t(QObject):
 
         if start in self._importsSet:
             return True
-        if GetMnem(start) == 'call':
+        if print_insn_mnem(start) == 'call':
             return False
-        #print GetMnem(start)
-        op = GetOperandValue(start, 0)
+        #print(print_insn_mnem(start))
+        op = get_operand_value(start, 0)
         if op in self._importsSet:
             return True
         return False
@@ -683,7 +681,7 @@ class FunctionsMapper_t(QObject):
         self._importsSet = set()
         self._importNamesSet = set()
         nimps = idaapi.get_import_module_qty()
-        for i in xrange(0, nimps):
+        for i in range(0, nimps):
             idaapi.enum_import_names(i, self.imports_names_callback)
 
     def _isImportName(self, name):
@@ -710,7 +708,7 @@ class FunctionsMapper_t(QObject):
         func_refs_to = XrefsTo(start, 1)
         refs_list = []
         for ref in func_refs_to:
-            if idc.GetMnem(ref.frm) == "":
+            if idc.print_insn_mnem(ref.frm) == "":
                 continue
             refs_list.append((ref.frm, start))
         return refs_list
@@ -719,18 +717,18 @@ class FunctionsMapper_t(QObject):
         """Lists the offsets from where the given function references the list of other function.
         """
 
-        start = GetFunctionAttr(func, FUNCATTR_START)
-        end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
+        start = get_func_attr(func, FUNCATTR_START)
+        end = prev_addr(get_func_attr(func, FUNCATTR_END))
         func_name = _getFunctionNameAt(start)
         curr = start
         calling_list = []
         while (True):
             if curr >= end:
                 break
-            op = GetOperandValue(curr, 0)
+            op = get_operand_value(curr, 0)
             if op in called_list:
                 calling_list.append((curr, op))
-            curr = NextAddr(curr)
+            curr = next_addr(curr)
         return calling_list
 
     def _listRefsFrom(self, func, start, end):
@@ -751,7 +749,7 @@ class FunctionsMapper_t(QObject):
         called_list = []
         func_name = _getFunctionNameAt(start)
 
-        for indx in xrange(0, dif):
+        for indx in range(0, dif):
           addr = start + indx
           func_refs_from = XrefsFrom(addr, 1)
           for ref in func_refs_from:
@@ -768,8 +766,8 @@ class FunctionsMapper_t(QObject):
 
       self._loadImports()
       for func in Functions():
-        start = GetFunctionAttr(func, FUNCATTR_START)
-        end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
+        start = get_func_attr(func, FUNCATTR_START)
+        end = prev_addr(get_func_attr(func, FUNCATTR_END))
 
         is_import = self._isImportStart(start)
 
@@ -809,7 +807,7 @@ class FunctionsListForm_t(PluginForm):
 
         fn_list = list()
         for func in Functions():
-            start = GetFunctionAttr(func, FUNCATTR_START)
+            start = get_func_attr(func, FUNCATTR_START)
             fn_list.append(start)
         return fn_list
 
@@ -825,7 +823,7 @@ class FunctionsListForm_t(PluginForm):
             delim = ";"
         fn_list = list()
         for func in Functions():
-            start = GetFunctionAttr(func, FUNCATTR_START)
+            start = get_func_attr(func, FUNCATTR_START)
             func_name = _getFunctionNameAt(start)
             start_rva = va_to_rva(start)
             line = "%lx%c%s" %(start_rva, delim, func_name)
@@ -1185,7 +1183,7 @@ class FunctionsListForm_t(PluginForm):
         self.refs_view.hilight_addr(BADADDR)
         self.refsfrom_view.hilight_addr(BADADDR)
         del self
-        print "Closed"
+        print("Closed")
 
     def Show(self):
         """Creates the form if not created or sets the focus if the form already exits.
@@ -1193,7 +1191,7 @@ class FunctionsListForm_t(PluginForm):
 
         return PluginForm.Show(self,
                                PLUGIN_NAME,
-                               options = PluginForm.FORM_PERSIST)
+                               options = PluginForm.WOPN_PERSIST)
 
 # --------------------------------------------------------------------------
 class IFLMenuHandler(idaapi.action_handler_t):
@@ -1258,6 +1256,7 @@ class funclister_t(idaapi.plugin_t):
         return idaapi.PLUGIN_OK
 
     def run(self, arg):
+        print("Run called")
         open_form()
         pass
 
@@ -1268,4 +1267,4 @@ def PLUGIN_ENTRY():
     return funclister_t()
 
 if __name__ == "__main__":
-    PLUGIN_ENTRY()
+    PLUGIN_ENTRY().init()
