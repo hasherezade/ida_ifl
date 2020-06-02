@@ -31,20 +31,24 @@ VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://git
 # custom functions:
 # --------------------------------------------------------------------------
 
-def rva_to_va(rva):
+
+def rva_to_va(rva: int) -> int:
     base = idaapi.get_imagebase()
     return rva + base
 
-def va_to_rva(va):
+
+def va_to_rva(va: int) -> int:
     base = idaapi.get_imagebase()
     return va - base
 
-def function_at(ea):
+
+def function_at(ea: int) -> Optional[int]:
     start = ea
     functions = Functions(start)
     for func in Functions():
         return func
     return None
+
 
 def parse_function_args(ea):
     local_variables = [ ]
