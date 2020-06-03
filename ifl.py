@@ -216,11 +216,11 @@ class FunctionInfo_t():
         """
         bng = self.start
         end = self.end
-        #swap if order is opposite:
+        # swap if order is opposite:
         if self.start > self.end:
             end = self.start
-            start = self.end
-        if addr >= bgn and  addr < end:
+            bng = self.end
+        if addr >= bng and addr < end:
             return True
         return False
 # --------------------------------------------------------------------------
