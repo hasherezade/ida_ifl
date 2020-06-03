@@ -214,13 +214,13 @@ class FunctionInfo_t():
     def contains(self, addr):
         """Check if the given address lies inside the function.
         """
-        bng = self.start
+        bgn = self.start
         end = self.end
         # swap if order is opposite:
         if self.start > self.end:
             end = self.start
-            bng = self.end
-        if addr >= bng and addr < end:
+            bgn = self.end
+        if addr >= bgn and addr < end:
             return True
         return False
 # --------------------------------------------------------------------------
