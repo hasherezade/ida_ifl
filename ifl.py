@@ -34,7 +34,7 @@ from PyQt5.QtCore import QObject, pyqtSignal  # type: ignore
 
 from typing import Optional, List, Tuple, Any, Union
 
-VERSION_INFO = "IFL v" + str(__VERSION__) + " - check for updates: https://github.com/hasherezade/ida_ifl"
+VERSION_INFO = f"IFL v{__VERSION__} - check for updates: https://github.com/hasherezade/ida_ifl"
 
 # --------------------------------------------------------------------------
 # custom functions:
@@ -88,12 +88,12 @@ def parse_function_args(ea: int) -> str:
             # Skip return address and base pointer
             current = arguments
             continue
-        arg_string += " " + name
+        arg_string += f" {name}"
         current.append(name)
     args_str = ", ".join(arguments)
     if len(args_str) == 0:
         args_str = "void"
-    return "(" + args_str + ")"
+    return f"({args_str})"
 
 
 def parse_function_type(ea: int, end: Optional[int] = None) -> str:
@@ -455,7 +455,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
 
         addr_str = "[%08lx]" % target_addr
         # target_name = GetDisasm(target_addr)
-        return addr_str + " : " + GetDisasm(target_addr)
+        return f"{addr_str} : {GetDisasm(target_addr)}"
 
     def _displayData(self, row: int, col: int) -> Optional[str]:
         """Retrieves the data to be displayed. appropriately to the row and column.
@@ -933,7 +933,7 @@ class FunctionsListForm_t(PluginForm):
         func_type = func_info.type
         func_args = _getArgsDescription(ea)
         func_name = _getFunctionNameAt(ea)
-        self.refs_label.setText(func_type + " <b>"+func_name+"</b> " + func_args)
+        self.refs_label.setText(f"{func_type} <b>{func_name}</b> {func_args}")
 
     def _update_ref_tabs(self, ea: int) -> None:
         """Sets on the tabs headers the numbers of references to the selected function.
@@ -1181,7 +1181,7 @@ class FunctionsListForm_t(PluginForm):
         if file_name is not None and len(file_name) > 0:
             names = self._loadFunctionsNames(file_name, ext)
             if names is None:
-                idaapi.warning("Malformed file %s" % file_name)
+                idaapi.warning(f"Malformed file %s" % file_name)
                 return
 
             (loaded, comments) = names
@@ -1199,7 +1199,7 @@ class FunctionsListForm_t(PluginForm):
             if not self._saveFunctionsNames(file_name, ext):
                 idaapi.warning("Failed exporting functions names!")
             else:
-                idaapi.info("Exported to: " + file_name)
+                idaapi.info("Exported to: %s", (file_name, ))
 
     def OnClose(self, form: Any) -> None:
         """Called when the plugin form is closed
