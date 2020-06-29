@@ -16,8 +16,8 @@ __AUTHOR__ = 'hasherezade'
 PLUGIN_NAME = "IFL - Interactive Functions List"
 PLUGIN_HOTKEY = "Ctrl-Alt-F"
 
-import idaapi # type: ignore
-import idc
+import idaapi  # type: ignore
+import idc  # type: ignore
 
 from idaapi import BADADDR, jumpto, next_addr, o_void, prev_addr,\
     print_insn_mnem, set_cmt, set_name, SN_NOWARN
@@ -25,16 +25,16 @@ from idc import CIC_ITEM, demangle_name, FUNCATTR_END, FUNCATTR_FRAME,\
     get_func_attr, get_func_name, get_inf_attr, get_operand_type,\
     get_operand_value, get_type, GetDisasm, INF_SHORT_DN, set_color, \
     FUNCATTR_START
-from idautils import Functions, XrefsFrom, XrefsTo
+from idautils import Functions, XrefsFrom, XrefsTo  # type: ignore
 
 
-from idaapi import PluginForm # type: ignore
-from PyQt5 import QtGui, QtCore, QtWidgets # type: ignore
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot # type: ignore
+from idaapi import PluginForm  # type: ignore
+from PyQt5 import QtGui, QtCore, QtWidgets  # type: ignore
+from PyQt5.QtCore import QObject, pyqtSignal  # type: ignore
 
 from typing import Optional, List, Tuple, Any, Union
 
-VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://github.com/hasherezade/ida_ifl"
+VERSION_INFO = "IFL v" + str(__VERSION__) + " - check for updates: https://github.com/hasherezade/ida_ifl"
 
 # --------------------------------------------------------------------------
 # custom functions:
@@ -57,6 +57,7 @@ def function_at(ea: int) -> Optional[int]:
     for func in functions:
         return func
     return None
+
 
 def parse_function_args(ea: int) -> str:
     local_variables = []
@@ -100,10 +101,10 @@ def parse_function_type(ea: int, end: Optional[int] = None) -> str:
     if frame is None:
         return ""
     if end is None:  # try to find end
-            func = function_at(ea)
-            if not func:
-                return "?"
-            end = prev_addr(get_func_attr(func, FUNCATTR_END))
+        func = function_at(ea)
+        if not func:
+            return "?"
+        end = prev_addr(get_func_attr(func, FUNCATTR_END))
     end_addr = end
     mnem = GetDisasm(end_addr)
 
@@ -806,7 +807,7 @@ class FunctionsMapper_t(QObject):
     def __init__(self, parent=None) -> None:
         super(FunctionsMapper_t, self).__init__(parent=parent)
         self._functionsMap = dict()
-        self.funcList = [] #  public
+        self.funcList = []  # public
         self._loadLocals()
 
     def funcAt(self, rva: int) -> FunctionInfo_t:
@@ -1176,7 +1177,7 @@ class FunctionsListForm_t(PluginForm):
         """Imports functions list from a file.
         """
 
-        file_name, ext = QtWidgets.QFileDialog.getOpenFileName( None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag);;All files (*)")
+        file_name, ext = QtWidgets.QFileDialog.getOpenFileName(None, "Import functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag);;All files (*)")
         if file_name is not None and len(file_name) > 0:
             names = self._loadFunctionsNames(file_name, ext)
             if names is None:
@@ -1193,18 +1194,18 @@ class FunctionsListForm_t(PluginForm):
         """Exports functions list into a file.
         """
 
-        file_name, ext = QtWidgets.QFileDialog.getSaveFileName( None, "Export functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag)")
+        file_name, ext = QtWidgets.QFileDialog.getSaveFileName(None, "Export functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag)")
         if file_name is not None and len(file_name) > 0:
-            if self._saveFunctionsNames(file_name, ext) == False:
+            if not self._saveFunctionsNames(file_name, ext):
                 idaapi.warning("Failed exporting functions names!")
             else:
-                idaapi.info("Exported to: "+ file_name)
+                idaapi.info("Exported to: " + file_name)
 
     def OnClose(self, form: Any) -> None:
         """Called when the plugin form is closed
         """
 
-        #clear last selection
+        # clear last selection
         self.addr_view.hilight_addr(BADADDR)
         self.refs_view.hilight_addr(BADADDR)
         self.refsfrom_view.hilight_addr(BADADDR)
@@ -1243,12 +1244,12 @@ def open_form() -> None:
     # -----
     try:
         g_DataManager
-    except:
+    except Exception:
         g_DataManager = DataManager()
     # -----
     try:
         m_functionInfoForm
-    except:
+    except Exception:
         idaapi.msg("%s\nLoading Interactive Function List...\n" % VERSION_INFO)
         m_functionInfoForm = FunctionsListForm_t()
 
