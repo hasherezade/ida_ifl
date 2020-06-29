@@ -1210,7 +1210,6 @@ class FunctionsListForm_t(PluginForm):
         self.refs_view.hilight_addr(BADADDR)
         self.refsfrom_view.hilight_addr(BADADDR)
         del self
-        print("Closed")
 
     def Show(self) -> PluginForm.Show:
         """Creates the form if not created or sets the focus if the form already exits.
@@ -1285,7 +1284,6 @@ class funclister_t(idaapi.plugin_t):
         return idaapi.PLUGIN_OK
 
     def run(self, arg: Any) -> None:
-        print("Run called")
         open_form()
         pass
 
