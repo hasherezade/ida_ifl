@@ -54,8 +54,9 @@ def va_to_rva(va: int) -> int:
 def function_at(ea: int) -> Optional[int]:
     start = ea
     functions = Functions(start)
-    return next(functions, None)
-
+    for func in functions:
+        return func
+    return None
 
 def parse_function_args(ea: int) -> str:
     local_variables = []
@@ -232,13 +233,13 @@ class FunctionInfo_t():
     def contains(self, addr: int) -> bool:
         """Check if the given address lies inside the function.
         """
-        bng = self.start
+        bgn = self.start
         end = self.end
         # swap if order is opposite:
         if self.start > self.end:
             end = self.start
-            bng = self.end
-        if addr >= bng and addr < end:
+            bgn = self.end
+        if addr >= bgn and addr < end:
             return True
         return False
 # --------------------------------------------------------------------------
