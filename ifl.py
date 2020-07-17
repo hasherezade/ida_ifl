@@ -10,7 +10,7 @@
 """
 CC-BY: hasherezade, run via IDA Pro >= 7.0
 """
-__VERSION__ = '1.3.4'
+__VERSION__ = '1.3.5'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -859,7 +859,12 @@ class FunctionsListForm_t(PluginForm):
                     fn = line.split(delim2) # try old delimiter
                 if len(fn) < 2:
                     continue
-                start = int(fn[0].strip(), 16)
+                start = 0
+                try:
+                    start = int(fn[0].strip(), 16)
+                except ValueError:
+                    # this line doesn't start from an offset, so skip it
+                    continue
                 func_name = fn[1].strip()
                 if start < idaapi.get_imagebase(): # it is RVA
                     start = rva_to_va(start) # convert to VA
