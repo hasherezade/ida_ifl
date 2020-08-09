@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 #
 # IFL - Interactive Functions List
 #
@@ -10,7 +10,7 @@
 """
 CC-BY: hasherezade, run via IDA Pro >= 7.0
 """
-__VERSION__ = '1.3.5'
+__VERSION__ = '1.3.6'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -25,9 +25,125 @@ from idaapi import PluginForm
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
+if idaapi.IDA_SDK_VERSION >= 740:
+    from ida_bytes import *
+
 VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://github.com/hasherezade/ida_ifl"
 
 # --------------------------------------------------------------------------
+# IDA API wrappers
+# --------------------------------------------------------------------------
+
+def ida_get_func_attr(func, attr):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return get_func_attr(func, attr)
+    else:
+        return GetFunctionAttr(func,attr)
+
+def ida_prev_addr(addr):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return prev_addr(addr)
+    else:
+        return PrevAddr(addr)
+
+def ida_print_insn_mnem(addr):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return print_insn_mnem(addr)
+    else:
+        return GetMnem(addr)
+
+def ida_get_func_name(ea):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return get_func_name(ea)
+    else:
+        return GetFunctionName(ea)
+
+def ida_get_member_name(frame, start):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return get_member_name(frame, start)
+    else:
+        return GetMemberName(frame, start)
+
+def ida_get_first_member(frame):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return get_first_member(frame)
+    else:
+        return GetFirstMember(frame)
+
+def ida_get_last_member(frame):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return get_last_member(frame)
+    else:
+        return GetLastMember(frame)
+
+def ida_get_inf_attr(param):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return get_inf_attr(param)
+    else:
+        return GetLongPrm(param)
+
+def ida_demangle(name, attr):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return demangle_name(name, attr)
+    else:
+        return Demangle(name, attr)
+
+def ida_get_operand_value(start, val):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return get_operand_value(start, val)
+    else:
+        return GetOperandValue(start, val)
+
+def ida_next_addr(curr):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return ida_bytes.next_addr(curr)
+    else:
+        return idc.NextAddr(curr)
+
+def ida_get_frame(ea):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return idc.get_func_attr(ea, FUNCATTR_FRAME)
+    else:
+        return idc.GetFrame(ea)
+
+def ida_get_type(ea):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return idc.get_type(ea)
+    else:
+        return idc.GetType(ea)
+
+def ida_get_member_size(frame, start):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return idc.get_member_size(frame, start)
+    else:
+        return GetMemberSize(frame, start)
+
+def ida_set_name(start, func_name, flags):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return idc.set_name(start, func_name, flags)
+    else:
+        return MakeNameEx(start, func_name, flags)
+
+def ida_get_operand_type(addr, op_id):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return idc.get_operand_type(addr, op_id)
+    else:
+        return GetOpType(addr, op_id)
+
+def ida_set_color(ea, item, color):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return idc.set_color(ea, item, color)
+    else:
+        return SetColor(ea, item, color)
+
+def ida_jump(ea):
+    if idaapi.IDA_SDK_VERSION >= 740:
+        return  ida_kernwin.jumpto(ea)
+    else:
+        return idc.Jump(ea)
+
+
+# -------------------------------------------------------------------------
 # custom functions:
 # --------------------------------------------------------------------------
 
@@ -51,24 +167,24 @@ def parse_function_args(ea):
     arguments = [ ]
     current = local_variables
 
-    frame = idc.GetFrame(ea)
+    frame = ida_get_frame(ea)
     arg_string = ""
     if frame == None:
         return ""
 
-    start = idc.GetFirstMember(frame)
-    end = idc.GetLastMember(frame)
+    start = ida_get_first_member(frame)
+    end = ida_get_last_member(frame)
     count = 0
     max_count = 10000
     args_str = ""
     while start <= end and count <= max_count:
-        size = idc.GetMemberSize(frame, start)
+        size = ida_get_member_size(frame, start)
         count = count + 1
         if size == None:
             start = start + 1
             continue
 
-        name = idc.GetMemberName(frame, start)
+        name = ida_get_member_name(frame, start)
         start += size
 
         if name in [" r", " s"]:
@@ -83,20 +199,20 @@ def parse_function_args(ea):
     return "(" + args_str + ")"
 
 def parse_function_type(ea, end=None):
-    frame = idc.GetFrame(ea)
+    frame = ida_get_frame(ea)
     if frame == None:
         return ""
     if end == None: #try to find end
             func = function_at(ea)
             if not func :
                 return "?"
-            end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
+            end = ida_prev_addr(ida_get_func_attr(func, FUNCATTR_END))
     end_addr = end
     mnem = GetDisasm(end_addr)
 
     if not "ret" in mnem:
         #it's not a real end, get instruction before...
-        end_addr = PrevAddr(end)
+        end_addr = ida_prev_addr(end)
         if end_addr == BADADDR:
             #cannot get the real end
             return ""
@@ -106,7 +222,7 @@ def parse_function_type(ea, end=None):
         #cannot get the real end
         return ""
 
-    op = GetOpType(end_addr, 0)
+    op = ida_get_operand_type(end_addr, 0)
     if op == o_void:
         #retn has NO parameters
         return "__cdecl"
@@ -114,7 +230,7 @@ def parse_function_type(ea, end=None):
     return "__stdcall"
 
 def _getFunctionType(start, end=None):
-    type = GetType(start)
+    type = ida_get_type(start)
     if type == None:
         return parse_function_type(start, end)
     args_start = type.find('(')
@@ -123,27 +239,27 @@ def _getFunctionType(start, end=None):
     return type
 
 def _isFunctionMangled(ea):
-    name = GetFunctionName(ea)
-    disable_mask = GetLongPrm(INF_SHORT_DN)
-    if Demangle(name, disable_mask) == None:
+    name = ida_get_func_name(ea)
+    disable_mask = ida_get_inf_attr(INF_SHORT_DN)
+    if ida_demangle(name, disable_mask) == None:
         return False
     return True
 
-def _getFunctionNameAt(ea):
-    name = GetFunctionName(ea)
-    disable_mask = GetLongPrm(INF_SHORT_DN)
-    demangled_name = Demangle(name, disable_mask)
-    if demangled_name == None:
+def _ida_get_func_nameAt(ea):
+    name = ida_get_func_name(ea)
+    disable_mask = ida_get_inf_attr(INF_SHORT_DN)
+    ida_demangled_name = ida_demangle(name, disable_mask)
+    if ida_demangled_name == None:
         return name
-    args_start = demangled_name.find('(')
+    args_start = ida_demangled_name.find('(')
     if args_start == None:
-        return demangled_name
-    return demangled_name[:args_start]
+        return ida_demangled_name
+    return ida_demangled_name[:args_start]
 
 def _getArgsDescription(ea):
-    name = Demangle(GetFunctionName(ea), GetLongPrm(INF_SHORT_DN)) #get from mangled name
+    name = ida_demangle(ida_get_func_name(ea), ida_get_inf_attr(INF_SHORT_DN)) #get from mangled name
     if not name:
-        name = GetType(ea) #get from type
+        name = ida_get_type(ea) #get from type
         if not name:
             return parse_function_args(ea) #cannot get params from the mangled name
     args_start = name.find('(')
@@ -182,7 +298,7 @@ class DataManager(QObject):
 
     def setFunctionName(self, start, func_name):
         flags = idaapi.SN_NOWARN | idaapi.SN_NOCHECK
-        if idc.MakeNameEx(start, func_name, flags):
+        if idc.ida_set_name(start, func_name, flags):
             self.updateSignal.emit()
             return True
         return False
@@ -276,7 +392,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
         if col == self.COL_ARGS:
             return _getArgsDescription(func_info.start)
         if col == self.COL_NAME:
-            return _getFunctionNameAt(func_info.start)
+            return _ida_get_func_nameAt(func_info.start)
         if col == self.COL_REFS:
             return len(func_info.refs_list)
         if col == self.COL_CALLED:
@@ -312,7 +428,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
     def _listRefs(self, refs_list):
         str_list = []
         for ea, ea_to in refs_list:
-            str = "%08x @ %s" % (ea, _getFunctionNameAt(ea_to))
+            str = "%08x @ %s" % (ea, _ida_get_func_nameAt(ea_to))
             str_list.append(str)
         return '\n'.join(str_list)
 
@@ -340,7 +456,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
             return False
         func_info = self.function_info_list[index.row()]
         if index.column() == self.COL_NAME:
-            MakeNameEx(func_info.start, str(content), SN_NOWARN)
+            ida_set_name(func_info.start, str(content), SN_NOWARN)
             g_DataManager.refreshData()
         return True
 
@@ -426,8 +542,8 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         curr_ref_addr = self.refs_list[row][1] #toaddr
 
         target_addr = self._getTargetAddr(row)
-        if GetMnem(target_addr) != "":
-            func_name = _getFunctionNameAt(target_addr)
+        if ida_print_insn_mnem(target_addr) != "":
+            func_name = _ida_get_func_nameAt(target_addr)
             if func_name:
                 return func_name
 
@@ -587,11 +703,11 @@ class FunctionsView_t(QtWidgets.QTableView):
         if self.prev_addr != BADADDR:
             ea = self.prev_addr
             self._set_segment_color(ea, COLOR_NORMAL)
-            SetColor(ea, CIC_ITEM, COLOR_NORMAL)
+            ida_set_color(ea, CIC_ITEM, COLOR_NORMAL)
         if addr != BADADDR:
             ea = addr
             self._set_segment_color(ea, COLOR_NORMAL)
-            SetColor(addr, CIC_ITEM, self.color_hilight)
+            ida_set_color(addr, CIC_ITEM, self.color_hilight)
         self.prev_addr = addr
 
     def get_index_data(self, index):
@@ -626,7 +742,7 @@ class FunctionsView_t(QtWidgets.QTableView):
         col = index.column()
         if self.func_model.isFollowable(col):
             self.hilight_addr(data)
-            Jump(data)
+            ida_jump(data)
         super(QtWidgets.QTableView, self).mouseDoubleClickEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -659,10 +775,10 @@ class FunctionsMapper_t(QObject):
 
         if start in self._importsSet:
             return True
-        if GetMnem(start) == 'call':
+        if ida_print_insn_mnem(start) == 'call':
             return False
-        #print GetMnem(start)
-        op = GetOperandValue(start, 0)
+        #print ida_print_insn_mnem(start)
+        op = ida_get_operand_value(start, 0)
         if op in self._importsSet:
             return True
         return False
@@ -710,7 +826,7 @@ class FunctionsMapper_t(QObject):
         func_refs_to = XrefsTo(start, 1)
         refs_list = []
         for ref in func_refs_to:
-            if idc.GetMnem(ref.frm) == "":
+            if ida_print_insn_mnem(ref.frm) == "":
                 continue
             refs_list.append((ref.frm, start))
         return refs_list
@@ -719,18 +835,18 @@ class FunctionsMapper_t(QObject):
         """Lists the offsets from where the given function references the list of other function.
         """
 
-        start = GetFunctionAttr(func, FUNCATTR_START)
-        end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
-        func_name = _getFunctionNameAt(start)
+        start = ida_get_func_attr(func, FUNCATTR_START)
+        end = ida_prev_addr(ida_get_func_attr(func, FUNCATTR_END))
+        func_name = _ida_get_func_nameAt(start)
         curr = start
         calling_list = []
         while (True):
             if curr >= end:
                 break
-            op = GetOperandValue(curr, 0)
+            op = ida_get_operand_value(curr, 0)
             if op in called_list:
                 calling_list.append((curr, op))
-            curr = NextAddr(curr)
+            curr = ida_next_addr(curr)
         return calling_list
 
     def _listRefsFrom(self, func, start, end):
@@ -749,13 +865,13 @@ class FunctionsMapper_t(QObject):
 
         dif = end - start
         called_list = []
-        func_name = _getFunctionNameAt(start)
+        func_name = _ida_get_func_nameAt(start)
 
         for indx in xrange(0, dif):
           addr = start + indx
           func_refs_from = XrefsFrom(addr, 1)
           for ref in func_refs_from:
-            if _getFunctionNameAt(ref.to) == func_name:
+            if _ida_get_func_nameAt(ref.to) == func_name:
               #skip jumps inside self
               continue
             called_list.append(ref.to)
@@ -768,8 +884,8 @@ class FunctionsMapper_t(QObject):
 
       self._loadImports()
       for func in Functions():
-        start = GetFunctionAttr(func, FUNCATTR_START)
-        end = PrevAddr(GetFunctionAttr(func, FUNCATTR_END))
+        start = ida_get_func_attr(func, FUNCATTR_START)
+        end = ida_prev_addr(ida_get_func_attr(func, FUNCATTR_END))
 
         is_import = self._isImportStart(start)
 
@@ -809,7 +925,7 @@ class FunctionsListForm_t(PluginForm):
 
         fn_list = list()
         for func in Functions():
-            start = GetFunctionAttr(func, FUNCATTR_START)
+            start = ida_get_func_attr(func, FUNCATTR_START)
             fn_list.append(start)
         return fn_list
 
@@ -825,8 +941,8 @@ class FunctionsListForm_t(PluginForm):
             delim = ";"
         fn_list = list()
         for func in Functions():
-            start = GetFunctionAttr(func, FUNCATTR_START)
-            func_name = _getFunctionNameAt(start)
+            start = ida_get_func_attr(func, FUNCATTR_START)
+            func_name = _ida_get_func_nameAt(start)
             start_rva = va_to_rva(start)
             line = "%lx%c%s" %(start_rva, delim, func_name)
             fn_list.append(line)
@@ -915,7 +1031,7 @@ class FunctionsListForm_t(PluginForm):
 
         func_type = func_info.type
         func_args = _getArgsDescription(ea)
-        func_name = _getFunctionNameAt(ea)
+        func_name = _ida_get_func_nameAt(ea)
         self.refs_label.setText(func_type + " <b>"+func_name+"</b> " + func_args)
 
     def _update_ref_tabs(self, ea):
@@ -1195,10 +1311,14 @@ class FunctionsListForm_t(PluginForm):
     def Show(self):
         """Creates the form if not created or sets the focus if the form already exits.
         """
-
-        return PluginForm.Show(self,
-                               PLUGIN_NAME,
-                               options = PluginForm.FORM_PERSIST)
+        if idaapi.IDA_SDK_VERSION >= 740:
+            return PluginForm.Show(self,
+                                   PLUGIN_NAME,
+                                   options = ida_kernwin.PluginForm.WOPN_PERSIST)
+        else:
+            return PluginForm.Show(self,
+                                   PLUGIN_NAME,
+                                   options = PluginForm.FORM_PERSIST)
 
 # --------------------------------------------------------------------------
 class IFLMenuHandler(idaapi.action_handler_t):
