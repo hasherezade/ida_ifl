@@ -298,7 +298,7 @@ class DataManager(QObject):
 
     def setFunctionName(self, start, func_name):
         flags = idaapi.SN_NOWARN | idaapi.SN_NOCHECK
-        if idc.ida_set_name(start, func_name, flags):
+        if ida_set_name(start, func_name, flags):
             self.updateSignal.emit()
             return True
         return False
