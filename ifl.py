@@ -1260,9 +1260,7 @@ def open_form() -> None:
     m_functionInfoForm.Show()
 
 # --------------------------------------------------------------------------
-
 # IDA api:
-
 
 class funclister_t(idaapi.plugin_t):
     flags = idaapi.PLUGIN_UNL
@@ -1294,7 +1292,6 @@ class funclister_t(idaapi.plugin_t):
 
     def term(self) -> None:
         pass
-
 
 def PLUGIN_ENTRY() -> funclister_t:
     return funclister_t()
