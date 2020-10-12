@@ -30,6 +30,11 @@ if idaapi.IDA_SDK_VERSION >= 740:
 
 VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://github.com/hasherezade/ida_ifl"
 
+light_theme = [ "lightblue", "orange", "khaki" ]
+dark_theme = [ "blue", "orangered", "black" ]
+g_Theme = dark_theme
+is_dark_theme = True
+
 # --------------------------------------------------------------------------
 # IDA API wrappers
 # --------------------------------------------------------------------------
@@ -357,7 +362,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
     COL_IMPORT = 7
     COL_COUNT = 8
     header_names = ['Start', 'End', 'Name', 'Type', 'Args', 'Is refered by', 'Refers to', 'Imported?']
-
+	
 #private:
 
     def _displayHeader(self, orientation, col):
@@ -418,11 +423,11 @@ class TableModel_t(QtCore.QAbstractTableModel):
     def _displayBackground(self, row, col):
         func_info = self.function_info_list[row]
         if col == self.COL_START or col == self.COL_END:
-            return QtGui.QColor("lightblue")
+            return QtGui.QColor(g_Theme[0])
         if col == self.COL_NAME:
             if func_info.is_import:
-                return QtGui.QColor("orange")
-            return QtGui.QColor("khaki")
+                return QtGui.QColor(g_Theme[1])
+            return QtGui.QColor(g_Theme[2])
         return None
 
     def _listRefs(self, refs_list):
@@ -580,9 +585,8 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
     def _displayBackground(self, row, col):
         """Retrieves a background color appropriate for the data.
         """
-
         if self.isFollowable(col):
-            return QtGui.QColor("lightblue")
+            return QtGui.QColor(g_Theme[0])
         return None
 
 #public:
@@ -918,6 +922,7 @@ class FunctionsListForm_t(PluginForm):
     _COLOR_HILIGHT_REFTO = 0xBBFFBB
     _COLOR_HILIGHT_REFFROM = 0xDDBBFF
     _LIVE_FILTER = True
+    _DARK_THEME = False
 
     def _listFunctionsAddr(self):
         """Lists all the starting addresses of the functions using IDA API.
@@ -1120,6 +1125,11 @@ class FunctionsListForm_t(PluginForm):
         if self.is_livefilter :
             self.filterByColumn(self.filter_combo.currentIndex(), self.filter_edit.text() )
 
+    def alternateRowColors(self, enable):
+        self.refsfrom_view.setAlternatingRowColors(enable)
+        self.addr_view.setAlternatingRowColors(enable)
+        self.refs_view.setAlternatingRowColors(enable)
+		
     def OnCreate(self, form):
         """Called when the plugin form is created
         """
@@ -1144,7 +1154,7 @@ class FunctionsListForm_t(PluginForm):
         self.addr_view.setModel(self.addr_sorted_model)
         self.addr_view.setSortingEnabled(True)
         self.addr_view.setWordWrap(False)
-        self.addr_view.setAlternatingRowColors(True)
+        
         self.addr_view.horizontalHeader().setStretchLastSection(False);
         self.addr_view.verticalHeader().show()
 
@@ -1155,7 +1165,6 @@ class FunctionsListForm_t(PluginForm):
         self._setup_sorted_model(self.refs_view, self.refsto_model)
         self.refs_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
         self.refs_view.setWordWrap(False)
-        self.refs_view.setAlternatingRowColors(True)
 
         font = self.refs_view.font()
         font.setPointSize(8)
@@ -1166,7 +1175,6 @@ class FunctionsListForm_t(PluginForm):
         self._setup_sorted_model(self.refsfrom_view, self.refsfrom_model)
         self.refsfrom_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
         self.refsfrom_view.setWordWrap(False)
-        self.refsfrom_view.setAlternatingRowColors(True)
 
         #add a box to enable/disable live filtering
         self.livefilter_box = QtWidgets.QCheckBox("Live filtering")
@@ -1180,6 +1188,8 @@ class FunctionsListForm_t(PluginForm):
         self.table_model.setParent(self.addr_sorted_model)
         self.addr_sorted_model.setParent(self.addr_view)
 
+        self.alternateRowColors(not is_dark_theme)
+		
         # connect SIGNAL
         g_DataManager.updateSignal.connect(self.longoperationcomplete)
 
