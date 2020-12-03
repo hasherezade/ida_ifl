@@ -35,9 +35,10 @@ from typing import Optional, List, Tuple, Any, Union
 
 VERSION_INFO = f"IFL v{__VERSION__} - check for updates: https://github.com/hasherezade/ida_ifl"
 
-transp = 150
-light_theme = [ QtGui.QColor(173, 216, 230, transp), QtGui.QColor(255, 165, 0, transp), QtGui.QColor(240, 230, 140, transp) ]
-dark_theme = [ QtGui.QColor(0, 0, 255, transp), QtGui.QColor(255, 69, 0, transp), QtGui.QColor(0, 0, 0, transp) ]
+transp_l = 150
+light_theme = [ QtGui.QColor(173, 216, 230, transp_l), QtGui.QColor(255, 165, 0, transp_l), QtGui.QColor(240, 230, 140, transp_l) ]
+transp_d = 50
+dark_theme = [ QtGui.QColor(0, 0, 255, transp_d), QtGui.QColor(255, 69, 0, transp_d), QtGui.QColor(0, 0, 0, transp_d) ]
 
 COLOR_HILIGHT_FUNC = 0xFFDDBB # BBGGRR
 COLOR_HILIGHT_REFTO = 0xBBFFBB
