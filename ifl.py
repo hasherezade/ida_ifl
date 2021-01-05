@@ -593,9 +593,7 @@ class FunctionsView_t(QtWidgets.QTableView):
 
     # private
     def _get_default_color(self) -> None:
-        ea = idaapi.get_screen_ea()
-        seg = idaapi.getseg(ea)
-        return seg.color
+        return idc.DEFCOLOR
 
     def _set_segment_color(self, ea, color) -> None:
         seg = idaapi.getseg(ea)
