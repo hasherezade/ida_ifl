@@ -587,18 +587,19 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
 # --------------------------------------------------------------------------
 # custom views:
 
-
-COLOR_NORMAL = 0xFFFFFF
-
-
 class FunctionsView_t(QtWidgets.QTableView):
     """The top view: listing all the functions.
     """
 
     # private
+    def _get_default_color(self) -> None:
+        ea = idaapi.get_screen_ea()
+        seg = idaapi.getseg(ea)
+        return seg.color
+
     def _set_segment_color(self, ea, color) -> None:
         seg = idaapi.getseg(ea)
-        seg.color = COLOR_NORMAL
+        seg.color = color
         seg.update()
 
     # public
@@ -606,6 +607,7 @@ class FunctionsView_t(QtWidgets.QTableView):
         super(FunctionsView_t, self).__init__(parent=parent)
         self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         #
+        self.color_normal = self._get_default_color()
         self.prev_addr = BADADDR
         self.color_hilight = color_hilight
         self.func_model = func_model
@@ -622,11 +624,11 @@ class FunctionsView_t(QtWidgets.QTableView):
     def hilight_addr(self, addr: int) -> None:
         if self.prev_addr != BADADDR:
             ea = self.prev_addr
-            self._set_segment_color(ea, COLOR_NORMAL)
-            set_color(ea, CIC_ITEM, COLOR_NORMAL)
+            self._set_segment_color(ea, self.color_normal)
+            set_color(ea, CIC_ITEM, self.color_normal)
         if addr != BADADDR:
             ea = addr
-            self._set_segment_color(ea, COLOR_NORMAL)
+            self._set_segment_color(ea, self.color_normal)
             set_color(addr, CIC_ITEM, self.color_hilight)
         self.prev_addr = addr
 
