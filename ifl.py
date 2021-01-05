@@ -30,6 +30,17 @@ if idaapi.IDA_SDK_VERSION >= 740:
 
 VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://github.com/hasherezade/ida_ifl"
 
+transp_l = 150
+light_theme = [ QtGui.QColor(173, 216, 230, transp_l), QtGui.QColor(255, 165, 0, transp_l), QtGui.QColor(240, 230, 140, transp_l) ]
+
+COLOR_HILIGHT_FUNC = 0xFFDDBB # BBGGRR
+COLOR_HILIGHT_REFTO = 0xBBFFBB
+COLOR_HILIGHT_REFFROM = 0xDDBBFF
+
+IS_ALTERNATE_ROW = False
+
+g_Theme = light_theme
+
 # --------------------------------------------------------------------------
 # IDA API wrappers
 # --------------------------------------------------------------------------
@@ -418,11 +429,11 @@ class TableModel_t(QtCore.QAbstractTableModel):
     def _displayBackground(self, row, col):
         func_info = self.function_info_list[row]
         if col == self.COL_START or col == self.COL_END:
-            return QtGui.QColor("lightblue")
+            return QtGui.QColor(g_Theme[0])
         if col == self.COL_NAME:
             if func_info.is_import:
-                return QtGui.QColor("orange")
-            return QtGui.QColor("khaki")
+                return QtGui.QColor(g_Theme[1])
+            return QtGui.QColor(g_Theme[2])
         return None
 
     def _listRefs(self, refs_list):
@@ -582,7 +593,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         """
 
         if self.isFollowable(col):
-            return QtGui.QColor("lightblue")
+            return QtGui.QColor(g_Theme[0])
         return None
 
 #public:
@@ -669,16 +680,17 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
 # --------------------------------------------------------------------------
 # custom views:
 
-COLOR_NORMAL = 0xFFFFFF
-
 class FunctionsView_t(QtWidgets.QTableView):
     """The top view: listing all the functions.
     """
 
     # private
+    def _get_default_color(self):
+        return idc.DEFCOLOR
+
     def _set_segment_color(self, ea, color):
         seg = idaapi.getseg(ea)
-        seg.color = COLOR_NORMAL
+        seg.color = color
         seg.update()
 
     # public
@@ -686,6 +698,7 @@ class FunctionsView_t(QtWidgets.QTableView):
         super(FunctionsView_t, self).__init__(parent=parent)
         self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         #
+        self.color_normal = self._get_default_color()
         self.prev_addr = BADADDR
         self.color_hilight = color_hilight
         self.func_model = func_model
@@ -702,11 +715,11 @@ class FunctionsView_t(QtWidgets.QTableView):
     def hilight_addr(self, addr):
         if self.prev_addr != BADADDR:
             ea = self.prev_addr
-            self._set_segment_color(ea, COLOR_NORMAL)
-            ida_set_color(ea, CIC_ITEM, COLOR_NORMAL)
+            self._set_segment_color(ea, self.color_normal)
+            ida_set_color(ea, CIC_ITEM, self.color_normal)
         if addr != BADADDR:
             ea = addr
-            self._set_segment_color(ea, COLOR_NORMAL)
+            self._set_segment_color(ea, self.color_normal)
             ida_set_color(addr, CIC_ITEM, self.color_hilight)
         self.prev_addr = addr
 
@@ -1120,6 +1133,11 @@ class FunctionsListForm_t(PluginForm):
         if self.is_livefilter :
             self.filterByColumn(self.filter_combo.currentIndex(), self.filter_edit.text() )
 
+    def alternateRowColors(self, enable):
+        self.refsfrom_view.setAlternatingRowColors(enable)
+        self.addr_view.setAlternatingRowColors(enable)
+        self.refs_view.setAlternatingRowColors(enable)
+
     def OnCreate(self, form):
         """Called when the plugin form is created
         """
@@ -1144,7 +1162,6 @@ class FunctionsListForm_t(PluginForm):
         self.addr_view.setModel(self.addr_sorted_model)
         self.addr_view.setSortingEnabled(True)
         self.addr_view.setWordWrap(False)
-        self.addr_view.setAlternatingRowColors(True)
         self.addr_view.horizontalHeader().setStretchLastSection(False);
         self.addr_view.verticalHeader().show()
 
@@ -1155,7 +1172,6 @@ class FunctionsListForm_t(PluginForm):
         self._setup_sorted_model(self.refs_view, self.refsto_model)
         self.refs_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
         self.refs_view.setWordWrap(False)
-        self.refs_view.setAlternatingRowColors(True)
 
         font = self.refs_view.font()
         font.setPointSize(8)
@@ -1166,7 +1182,6 @@ class FunctionsListForm_t(PluginForm):
         self._setup_sorted_model(self.refsfrom_view, self.refsfrom_model)
         self.refsfrom_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
         self.refsfrom_view.setWordWrap(False)
-        self.refsfrom_view.setAlternatingRowColors(True)
 
         #add a box to enable/disable live filtering
         self.livefilter_box = QtWidgets.QCheckBox("Live filtering")
@@ -1251,6 +1266,7 @@ class FunctionsListForm_t(PluginForm):
         layout.setSpacing(0)
         layout.setContentsMargins(0,0,0,0)
         self.parent.setLayout(layout)
+        self.alternateRowColors(IS_ALTERNATE_ROW)
 
         idaapi.set_dock_pos(PLUGIN_NAME, "IDA HExview-1", idaapi.DP_RIGHT)
 
