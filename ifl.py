@@ -927,9 +927,6 @@ class FunctionsListForm_t(PluginForm):
     """
 
 #private
-    _COLOR_HILIGHT_FUNC = 0xFFDDBB # BBGGRR
-    _COLOR_HILIGHT_REFTO = 0xBBFFBB
-    _COLOR_HILIGHT_REFFROM = 0xDDBBFF
     _LIVE_FILTER = True
 
     def _listFunctionsAddr(self):
@@ -1158,7 +1155,7 @@ class FunctionsListForm_t(PluginForm):
         self.addr_sorted_model = QtCore.QSortFilterProxyModel()
         self.addr_sorted_model.setDynamicSortFilter(True)
         self.addr_sorted_model.setSourceModel(self.table_model)
-        self.addr_view = FunctionsView_t(g_DataManager, self._COLOR_HILIGHT_FUNC, self.table_model)
+        self.addr_view = FunctionsView_t(g_DataManager, COLOR_HILIGHT_FUNC, self.table_model)
         self.addr_view.setModel(self.addr_sorted_model)
         self.addr_view.setSortingEnabled(True)
         self.addr_view.setWordWrap(False)
@@ -1168,7 +1165,7 @@ class FunctionsListForm_t(PluginForm):
         self.adjustColumnsToContents()
         #
         self.refsto_model = RefsTableModel_t(self.funcMapper.funcList, True)
-        self.refs_view = FunctionsView_t(self.subDataManager, self._COLOR_HILIGHT_REFTO, self.refsto_model)
+        self.refs_view = FunctionsView_t(self.subDataManager, COLOR_HILIGHT_REFTO, self.refsto_model)
         self._setup_sorted_model(self.refs_view, self.refsto_model)
         self.refs_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
         self.refs_view.setWordWrap(False)
@@ -1178,7 +1175,7 @@ class FunctionsListForm_t(PluginForm):
         self.refs_view.setFont(font)
         #
         self.refsfrom_model = RefsTableModel_t(self.funcMapper.funcList, False)
-        self.refsfrom_view = FunctionsView_t(self.subDataManager, self._COLOR_HILIGHT_REFFROM, self.refsfrom_model)
+        self.refsfrom_view = FunctionsView_t(self.subDataManager, COLOR_HILIGHT_REFFROM, self.refsfrom_model)
         self._setup_sorted_model(self.refsfrom_view, self.refsfrom_model)
         self.refsfrom_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
         self.refsfrom_view.setWordWrap(False)
