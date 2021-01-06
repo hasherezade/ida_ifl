@@ -21,6 +21,8 @@ from idautils import *
 from idaapi import *
 from idc import *
 
+import ida_kernwin
+
 from idaapi import PluginForm
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
