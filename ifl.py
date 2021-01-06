@@ -644,7 +644,6 @@ class FunctionsView_t(QtWidgets.QTableView):
         self.dataManager.setCurrentRva(index_data)
 
     def hilight_addr(self, addr: int) -> None:
-        bg_color = get_bg_color()
         if is_dark_theme():
             color_hilight = color_to_val(QtGui.QColor(self.color_hilight).darker(200))
         else:
