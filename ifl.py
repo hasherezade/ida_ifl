@@ -30,16 +30,16 @@ if idaapi.IDA_SDK_VERSION >= 740:
 
 VERSION_INFO = "IFL v" + str( __VERSION__ ) + " - check for updates: https://github.com/hasherezade/ida_ifl"
 
-transp_l = 150
+transp_l = 255
 light_theme = [ QtGui.QColor(173, 216, 230, transp_l), QtGui.QColor(255, 165, 0, transp_l), QtGui.QColor(240, 230, 140, transp_l) ]
+transp_d = 70
+dark_theme = [ QtGui.QColor(173, 216, 240, transp_d), QtGui.QColor(255, 0, 255, transp_d), QtGui.QColor(255, 130, 130, transp_d) ]
 
 COLOR_HILIGHT_FUNC = 0xFFDDBB # BBGGRR
 COLOR_HILIGHT_REFTO = 0xBBFFBB
 COLOR_HILIGHT_REFFROM = 0xDDBBFF
 
 IS_ALTERNATE_ROW = False
-
-g_Theme = light_theme
 
 # --------------------------------------------------------------------------
 # IDA API wrappers
@@ -157,6 +157,27 @@ def ida_jump(ea):
 # -------------------------------------------------------------------------
 # custom functions:
 # --------------------------------------------------------------------------
+
+def get_bg_color():
+    w = ida_kernwin.get_current_widget()
+    widget = ida_kernwin.PluginForm.FormToPyQtWidget(w)
+    color = widget.palette().color(QtGui.QPalette.Background)
+    return color
+	
+def is_dark_theme():
+    bg_color = get_bg_color()
+    if bg_color.lightness() > QtGui.QColor(COLOR_HILIGHT_FUNC).lightness():
+        return False
+    return True
+
+def color_to_val(color):
+    return (((color.red() << 8) | color.green()) << 8) | color.blue()
+	
+def get_theme():
+    theme = light_theme
+    if is_dark_theme():
+        theme = dark_theme
+    return theme
 
 def rva_to_va(rva):
     base = idaapi.get_imagebase()
@@ -427,13 +448,15 @@ class TableModel_t(QtCore.QAbstractTableModel):
         return ""
 
     def _displayBackground(self, row, col):
+        theme = get_theme()
+			
         func_info = self.function_info_list[row]
         if col == self.COL_START or col == self.COL_END:
-            return QtGui.QColor(g_Theme[0])
+            return QtGui.QColor(theme[0])
         if col == self.COL_NAME:
             if func_info.is_import:
-                return QtGui.QColor(g_Theme[1])
-            return QtGui.QColor(g_Theme[2])
+                return QtGui.QColor(theme[1])
+            return QtGui.QColor(theme[2])
         return None
 
     def _listRefs(self, refs_list):
@@ -592,8 +615,9 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         """Retrieves a background color appropriate for the data.
         """
 
+        theme = get_theme() 
         if self.isFollowable(col):
-            return QtGui.QColor(g_Theme[0])
+            return QtGui.QColor(theme[0])
         return None
 
 #public:
@@ -692,7 +716,7 @@ class FunctionsView_t(QtWidgets.QTableView):
         seg = idaapi.getseg(ea)
         seg.color = color
         seg.update()
-
+	
     # public
     def __init__(self, dataManager, color_hilight, func_model, parent=None):
         super(FunctionsView_t, self).__init__(parent=parent)
@@ -713,6 +737,12 @@ class FunctionsView_t(QtWidgets.QTableView):
         self.dataManager.setCurrentRva(index_data)
 
     def hilight_addr(self, addr):
+        bg_color = get_bg_color()
+        if is_dark_theme():
+            color_hilight = color_to_val(QtGui.QColor(self.color_hilight).darker(200))
+        else:
+            color_hilight = self.color_hilight
+			
         if self.prev_addr != BADADDR:
             ea = self.prev_addr
             self._set_segment_color(ea, self.color_normal)
@@ -720,7 +750,7 @@ class FunctionsView_t(QtWidgets.QTableView):
         if addr != BADADDR:
             ea = addr
             self._set_segment_color(ea, self.color_normal)
-            ida_set_color(addr, CIC_ITEM, self.color_hilight)
+            ida_set_color(addr, CIC_ITEM, color_hilight)
         self.prev_addr = addr
 
     def get_index_data(self, index):
