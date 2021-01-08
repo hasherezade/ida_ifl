@@ -626,6 +626,20 @@ class FunctionsView_t(QtWidgets.QTableView):
         seg.color = color
         seg.update()
 
+    def _set_item_color(self, addr: int, color: int) -> None:
+        ea = addr
+        # reset to default
+        self._set_segment_color(ea, self.color_normal)
+        # set desired item color
+        set_color(addr, CIC_ITEM, color)
+
+    def _get_themed_color(self, color: int) -> int:
+        if is_dark_theme():
+            color_hilight = color_to_val(QtGui.QColor(color).darker(200))
+        else:
+            color_hilight = color
+        return color_hilight
+
     # public
     def __init__(self, dataManager, color_hilight, func_model, parent=None) -> None:
         super(FunctionsView_t, self).__init__(parent=parent)
@@ -646,19 +660,12 @@ class FunctionsView_t(QtWidgets.QTableView):
         self.dataManager.setCurrentRva(index_data)
 
     def hilight_addr(self, addr: int) -> None:
-        if is_dark_theme():
-            color_hilight = color_to_val(QtGui.QColor(self.color_hilight).darker(200))
-        else:
-            color_hilight = self.color_hilight
-			
+        color_hilight = self._get_themed_color(self.color_hilight)
+
         if self.prev_addr != BADADDR:
-            ea = self.prev_addr
-            self._set_segment_color(ea, self.color_normal)
-            set_color(ea, CIC_ITEM, self.color_normal)
+            self._set_item_color(self.prev_addr, self.color_normal)
         if addr != BADADDR:
-            ea = addr
-            self._set_segment_color(ea, self.color_normal)
-            set_color(addr, CIC_ITEM, color_hilight)
+            self._set_item_color(addr, color_hilight)
         self.prev_addr = addr
 
     def get_index_data(self, index: Any) -> Any:
