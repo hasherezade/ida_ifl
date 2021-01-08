@@ -999,7 +999,7 @@ class FunctionsListForm_t(PluginForm):
             fromcount = len(func_info.called_list)
         except KeyError:
             pass
-        self.refs_tabs.setTabText(0,  "Is refered by %d:" % tocount)
+        self.refs_tabs.setTabText(0,  "Is referred by %d:" % tocount)
         self.refs_tabs.setTabText(1,  "Refers to %d:" % fromcount)
 
     def adjustColumnsToContents(self) -> None:
