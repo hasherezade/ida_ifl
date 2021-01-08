@@ -51,6 +51,8 @@ IS_ALTERNATE_ROW = False
 # custom functions:
 # --------------------------------------------------------------------------
 
+# Theme 
+
 def get_bg_color():
     w = ida_kernwin.get_current_widget()
     widget = ida_kernwin.PluginForm.FormToPyQtWidget(w)
@@ -75,6 +77,8 @@ def get_theme():
     if is_dark_theme():
         theme = dark_theme
     return theme
+	
+# Addressing 
 
 def rva_to_va(rva: int) -> int:
     base = idaapi.get_imagebase()
@@ -85,6 +89,7 @@ def va_to_rva(va: int) -> int:
     base = idaapi.get_imagebase()
     return va - base
 
+# Functions and args 
 
 def function_at(ea: int) -> Optional[int]:
     start = ea
@@ -1209,7 +1214,7 @@ class FunctionsListForm_t(PluginForm):
         self.parent.setLayout(layout)
         self.alternateRowColors(IS_ALTERNATE_ROW)
 
-        idaapi.set_dock_pos(PLUGIN_NAME, "IDA HExview-1", idaapi.DP_RIGHT)
+        idaapi.set_dock_pos(PLUGIN_NAME, None, idaapi.DP_RIGHT)
 
     def _makeButtonsPanel(self) -> QtWidgets.QFrame:
         """Creates on the form's bottom the panel with buttons.
@@ -1270,8 +1275,9 @@ class FunctionsListForm_t(PluginForm):
         """Creates the form if not created or sets the focus if the form already exits.
         """
 
+        title = PLUGIN_NAME + " v" + __VERSION__
         return PluginForm.Show(self,
-                               PLUGIN_NAME,
+                               title,
                                options=PluginForm.WOPN_PERSIST)
 
 
