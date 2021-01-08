@@ -36,7 +36,7 @@ from typing import Optional, List, Tuple, Any, Union
 
 VERSION_INFO = f"IFL v{__VERSION__} - check for updates: https://github.com/hasherezade/ida_ifl"
 
-transp_l = 255
+transp_l = 230
 light_theme = [ QtGui.QColor(173, 216, 230, transp_l), QtGui.QColor(255, 165, 0, transp_l), QtGui.QColor(240, 230, 140, transp_l) ]
 transp_d = 70
 dark_theme = [ QtGui.QColor(173, 216, 240, transp_d), QtGui.QColor(255, 0, 255, transp_d), QtGui.QColor(255, 130, 130, transp_d) ]
