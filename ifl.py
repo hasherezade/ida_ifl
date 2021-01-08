@@ -296,7 +296,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
     COL_CALLED = 6
     COL_IMPORT = 7
     COL_COUNT = 8
-    header_names = ['Start', 'End', 'Name', 'Type', 'Args', 'Is refered by', 'Refers to', 'Imported?']
+    header_names = ['Start', 'End', 'Name', 'Type', 'Args', 'Is referred by', 'Refers to', 'Imported?']
 
 # private:
 
