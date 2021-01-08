@@ -47,8 +47,6 @@ COLOR_HILIGHT_REFFROM = 0xDDBBFF
 
 IS_ALTERNATE_ROW = False
 
-g_Theme = light_theme
-
 # --------------------------------------------------------------------------
 # custom functions:
 # --------------------------------------------------------------------------
@@ -58,16 +56,20 @@ def get_bg_color():
     widget = ida_kernwin.PluginForm.FormToPyQtWidget(w)
     color = widget.palette().color(QtGui.QPalette.Background)
     return color
-	
+
+def is_darker(color1, color2):
+    if QtGui.QColor(color2).lightness() > QtGui.QColor(color1).lightness():
+        return False
+    return True
+
 def is_dark_theme():
-    bg_color = get_bg_color()
-    if bg_color.lightness() > QtGui.QColor(COLOR_HILIGHT_FUNC).lightness():
+    if is_darker(get_bg_color(), COLOR_HILIGHT_FUNC):
         return False
     return True
 
 def color_to_val(color):
     return (((color.red() << 8) | color.green()) << 8) | color.blue()
-	
+
 def get_theme():
     theme = light_theme
     if is_dark_theme():
