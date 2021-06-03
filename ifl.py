@@ -1259,7 +1259,7 @@ class FunctionsListForm_t(PluginForm):
             if not self._saveFunctionsNames(file_name, ext):
                 idaapi.warning("Failed exporting functions names!")
             else:
-                idaapi.info("Exported to: %s", (file_name, ))
+                idaapi.info("Exported to: " + file_name)
 
     def OnClose(self, form: Any) -> None:
         """Called when the plugin form is closed
