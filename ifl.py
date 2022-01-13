@@ -10,7 +10,7 @@
 """
 CC-BY: hasherezade, run via IDA Pro >= 7.0
 """
-__VERSION__ = '1.4.2.2'
+__VERSION__ = '1.4.3'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -51,11 +51,15 @@ IS_ALTERNATE_ROW = False
 # custom functions:
 # --------------------------------------------------------------------------
 
-# Theme 
+# Theme
 
 def get_bg_color():
     w = ida_kernwin.get_current_widget()
+    if not w:
+        return None
     widget = ida_kernwin.PluginForm.FormToPyQtWidget(w)
+    if not widget:
+        return None
     color = widget.palette().color(QtGui.QPalette.Background)
     return color
 
@@ -64,20 +68,17 @@ def is_darker(color1, color2):
         return False
     return True
 
-def is_dark_theme():
-    if is_darker(get_bg_color(), COLOR_HILIGHT_FUNC):
-        return False
-    return True
-
 def color_to_val(color):
     return (((color.red() << 8) | color.green()) << 8) | color.blue()
 
 def get_theme():
-    theme = light_theme
-    if is_dark_theme():
-        theme = dark_theme
-    return theme
-	
+    bgcolor = get_bg_color()
+    if bgcolor is None:
+        return None
+    if is_darker(bgcolor, COLOR_HILIGHT_FUNC):
+        return light_theme
+    return dark_theme
+
 # Addressing 
 
 def rva_to_va(rva: int) -> int:
@@ -311,7 +312,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
     COL_IMPORT = 7
     COL_COUNT = 8
     header_names = ['Start', 'End', 'Name', 'Type', 'Args', 'Is referred by', 'Refers to', 'Imported?']
-
+    
 # private:
 
     def _displayHeader(self, orientation: QtCore.Qt.Orientation, col: int) -> Optional[str]:
@@ -370,15 +371,17 @@ class TableModel_t(QtCore.QAbstractTableModel):
         return ""
 
     def _displayBackground(self, row: int, col: int) -> Any:
-        theme = get_theme()
-
+        curr_theme = get_theme()
+        if curr_theme is not None:
+            self.theme = curr_theme
+      
         func_info = self.function_info_list[row]
         if col == self.COL_START or col == self.COL_END:
-            return QtGui.QColor(theme[0])
+            return QtGui.QColor(self.theme[0])
         if col == self.COL_NAME:
             if func_info.is_import:
-                return QtGui.QColor(theme[1])
-            return QtGui.QColor(theme[2])
+                return QtGui.QColor(self.theme[1])
+            return QtGui.QColor(self.theme[2])
         return None
 
     def _listRefs(self, refs_list: List[Tuple[int, int]]) -> str:
@@ -392,6 +395,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
     def __init__(self, function_info_list, parent=None, *args) -> None:
         super(TableModel_t, self).__init__()
         self.function_info_list = function_info_list
+        self.theme = light_theme
 
     def isFollowable(self, col: int) -> bool:
         if col == self.COL_START:
@@ -537,10 +541,12 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
     def _displayBackground(self, row: int, col: int) -> Any:
         """Retrieves a background color appropriate for the data.
         """
-
-        theme = get_theme() 
+        curr_theme = get_theme()
+        if curr_theme is not None:
+            self.theme = curr_theme
+            
         if self.isFollowable(col):
-            return QtGui.QColor(theme[0])
+            return QtGui.QColor(self.theme[0])
         return None
 
 # public:
@@ -550,6 +556,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
         self.curr_index = (-1)
         self.refs_list = []
         self.is_refs_to = is_refs_to
+        self.theme = light_theme
 
     def isFollowable(self, col: int) -> bool:
         """Is the address possible to follow in the disassembly view?
@@ -647,8 +654,8 @@ class FunctionsView_t(QtWidgets.QTableView):
         # set desired item color
         set_color(addr, CIC_ITEM, color)
 
-    def _get_themed_color(self, color: int) -> int:
-        if is_dark_theme():
+    def _get_themed_color(self, color: int, theme: list) -> int:
+        if theme == dark_theme:
             color_hilight = color_to_val(QtGui.QColor(color).darker(200))
         else:
             color_hilight = color
@@ -667,6 +674,7 @@ class FunctionsView_t(QtWidgets.QTableView):
 
         self.setMouseTracking(True)
         self.setAutoFillBackground(True)
+        self.theme = light_theme
 
     # Qt API
     def currentChanged(self, current, previous) -> None:
@@ -674,7 +682,11 @@ class FunctionsView_t(QtWidgets.QTableView):
         self.dataManager.setCurrentRva(index_data)
 
     def hilight_addr(self, addr: int) -> None:
-        color_hilight = self._get_themed_color(self.color_hilight)
+        curr_theme = get_theme()
+        if curr_theme is not None:
+            self.theme = curr_theme
+            
+        color_hilight = self._get_themed_color(self.color_hilight, self.theme)
 
         if self.prev_addr != BADADDR:
             self._set_item_color(self.prev_addr, self.color_normal)
