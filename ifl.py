@@ -18,6 +18,7 @@ PLUGIN_HOTKEY = "Ctrl-Alt-F"
 
 import idaapi  # type: ignore
 import idc  # type: ignore
+import ida_bytes
 import ida_kernwin
 
 from idaapi import BADADDR, jumpto, next_addr, o_void, prev_addr,\
@@ -935,6 +936,7 @@ class FunctionsListForm_t(PluginForm):
     def _stripImportName(self, func_name) -> str:
         """Keep only ImportName, without the DLL name, and the ordinal.
         """
+
         fn1 = func_name.split('.')
         if len(fn1) >= 2:
             func_name = fn1[1].strip()
@@ -942,6 +944,21 @@ class FunctionsListForm_t(PluginForm):
         if len(fn1) >= 2:
             func_name = fn1[0].strip()
         return func_name
+
+    def _defineImportThunk(self, start, thunk_val):
+        """If the binary has the Import Thunk filled, define it as a data chunk of appropriate size.
+        """
+
+        info = idaapi.get_inf_structure()
+        if info.is_64bit():
+            curr_val = idc.get_qword(start)
+            if (curr_val == thunk_val):
+                return ida_bytes.create_data(start, idaapi.FF_QWORD, 8, idaapi.BADADDR)
+        elif info.is_32bit():
+            curr_val = ida_bytes.get_dword(start)
+            if (curr_val == thunk_val):
+                return ida_bytes.create_data(start, idaapi.FF_DWORD, 4, idaapi.BADADDR)
+        return False
 
     def _loadFunctionsNames(self, file_name: Optional[str], ext: str) -> Optional[Tuple[int, int]]:
         """Loads functions names from the given file into the internal mappings.
@@ -987,6 +1004,8 @@ class FunctionsListForm_t(PluginForm):
                 if is_imp_list or (start in curr_functions):
                     if is_imp_list:
                         func_name = self._stripImportName(func_name)
+                        thunk_val = int(fn[1].strip(), 16)
+                        self._defineImportThunk(start, thunk_val)
 
                     if self.subDataManager.setFunctionName(start, func_name):
                         functions += 1
