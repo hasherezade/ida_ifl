@@ -1,5 +1,12 @@
 # IFL - Interactive Functions List
 
+[![GitHub release](https://img.shields.io/github/release/hasherezade/ida_ifl.svg)](https://github.com/hasherezade/ida_ifl/releases)
+[![GitHub release date](https://img.shields.io/github/release-date/hasherezade/ida_ifl?color=blue)](https://github.com/hasherezade/ida_ifl/releases)
+
+[![Commit activity](https://img.shields.io/github/commit-activity/m/hasherezade/ida_ifl)](https://github.com/hasherezade/ida_ifl/commits)
+[![Last Commit](https://img.shields.io/github/last-commit/hasherezade/ida_ifl/master)](https://github.com/hasherezade/ida_ifl/commits)
+
+
 License: CC-BY (https://creativecommons.org/licenses/by/3.0/)
 
 A small plugin with a goal to provide user-friendly way to navigate between functions and their references.<br/>
