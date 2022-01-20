@@ -10,7 +10,7 @@
 """
 CC-BY: hasherezade, run via IDA Pro >= 7.0
 """
-__VERSION__ = '1.4.3'
+__VERSION__ = '1.4.4'
 __AUTHOR__ = 'hasherezade'
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -1308,7 +1308,7 @@ class FunctionsListForm_t(PluginForm):
         if file_name is None or len(file_name) == 0:
             return
         default_base = idaapi.get_imagebase()
-        base_str, ok = QtWidgets.QInputDialog.getText(None, "Set base:", "Current module base:", QtWidgets.QLineEdit.Normal, hex(default_base))
+        base_str, ok = QtWidgets.QInputDialog.getText(None, "Rebase tags:", "Current module base:", QtWidgets.QLineEdit.Normal, hex(default_base))
         if not ok:
             return
         if _is_hex_str(base_str):
