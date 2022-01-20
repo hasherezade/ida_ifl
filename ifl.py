@@ -92,6 +92,10 @@ def va_to_rva(va: int) -> int:
 
 
 def _is_hex_str(s):
+    # skip prefix:
+    if s[:2] == "0x":
+        s = s[2:]
+    # validate hex charset:
     hex_digits = set("0123456789abcdefABCDEF")
     for val in s:
         if not (val in hex_digits):
@@ -1306,9 +1310,11 @@ class FunctionsListForm_t(PluginForm):
         default_base = idaapi.get_imagebase()
         base_str, ok = QtWidgets.QInputDialog.getText(None, "Set base:", "Current module base:", QtWidgets.QLineEdit.Normal, hex(default_base))
         if not ok:
-            load_base = default_base
-        else:
+            return
+        if _is_hex_str(base_str):
             load_base = int(base_str, 16)
+        else:
+            load_base = default_base          
         names = self._loadFunctionsNames(file_name, ext, load_base)
         if names is None:
             idaapi.warning(f"Malformed file %s" % file_name)
