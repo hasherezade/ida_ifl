@@ -1014,7 +1014,8 @@ class FunctionsListForm_t(PluginForm):
                         functions += 1
                         continue
 
-                set_cmt(start, func_name, 1)  # set the name as a comment
+                set_cmt(start, func_name, 1)  # set the name as a repeatable comment
+                set_cmt(start, func_name, 0)  # make sure to overwrite the default IDA comments
                 comments += 1
         return (functions, comments)
 
