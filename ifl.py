@@ -787,7 +787,10 @@ class FunctionsMapper_t(QObject):
         self._importNamesSet = set()
         nimps = idaapi.get_import_module_qty()
         for i in range(0, nimps):
-            idaapi.enum_import_names(i, self.imports_names_callback)
+            try:
+                idaapi.enum_import_names(i, self.imports_names_callback)
+            except:
+                idaapi.msg("Failed to fetch function name")
 
     def _isImportName(self, name: str) -> bool:
         """Checks if the given name belongs to the imported function with the help of internal set.
