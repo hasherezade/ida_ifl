@@ -915,11 +915,11 @@ class FunctionsListForm_t(PluginForm):
             fn_list.append(start)
         return fn_list
 
-    def _saveFunctionsNames(self, file_name: Optional[str], ext: str) -> bool:
+    def _saveFunctionsNames(self, file_name: Optional[str], ext: str, skip_unnamed: bool) -> bool:
         """Saves functions names and offsets from the internal mappings into a file.
         Fromats: CSV (default), or TAG (PE-bear, PE-sieve compatibile).
         """
-
+        
         if file_name is None or len(file_name) == 0:
             return False
         delim = ","
@@ -929,6 +929,9 @@ class FunctionsListForm_t(PluginForm):
         for func in Functions():
             start = get_func_attr(func, FUNCATTR_START)
             func_name = _getFunctionNameAt(start)
+            if skip_unnamed:
+                if func_name.startswith("sub_"):
+                    continue
             start_rva = va_to_rva(start)
             line = "%lx%c%s" % (start_rva, delim, func_name)
             fn_list.append(line)
@@ -1334,8 +1337,9 @@ class FunctionsListForm_t(PluginForm):
         """
 
         file_name, ext = QtWidgets.QFileDialog.getSaveFileName(None, "Export functions names", QtCore.QDir.homePath(), "CSV Files (*.csv);;TAG Files (*.tag)")
+        skip_unnamed = True
         if file_name is not None and len(file_name) > 0:
-            if not self._saveFunctionsNames(file_name, ext):
+            if not self._saveFunctionsNames(file_name, ext, skip_unnamed):
                 idaapi.warning("Failed exporting functions names!")
             else:
                 idaapi.info("Exported to: " + file_name)
