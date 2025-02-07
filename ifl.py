@@ -138,11 +138,7 @@ def _is_hex_str(s):
 
 
 def function_at(ea: int) -> Optional[int]:
-    start = ea
-    functions = Functions(start)
-    for func in functions:
-        return func
-    return None
+    return next(Functions(ea), None)
 
 
 def parse_function_args(ea: int) -> str:
@@ -190,7 +186,7 @@ def parse_function_type(ea: int, end: Optional[int] = None) -> str:
         func = function_at(ea)
         if not func:
             return "?"
-        end = prev_addr(get_func_attr(func, FUNCATTR_END))
+        end = prev_addr(idc.get_func_attr(func, FUNCATTR_END))
     end_addr = end
     mnem = GetDisasm(end_addr)
 
@@ -1482,10 +1478,6 @@ class funclister_t(idaapi.plugin_t):
 
     def run(self, arg: Any) -> None:
         open_form()
-        pass
-
-    def term(self) -> None:
-        pass
 
 
 def PLUGIN_ENTRY() -> funclister_t:
