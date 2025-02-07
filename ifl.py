@@ -142,40 +142,53 @@ def function_at(ea: int) -> Optional[int]:
 
 
 def parse_function_args(ea: int) -> str:
-    local_variables = []
     arguments = []
-    current = local_variables
-
     frame = idc.get_func_attr(ea, FUNCATTR_FRAME)
-    arg_string = ""
+
     if frame is None:
         return ""
 
-    start = idc.get_first_member(frame)
-    end = idc.get_last_member(frame)
-    count = 0
-    max_count = 10000
-    args_str = ""
-    while start <= end and count <= max_count:
-        size = idc.get_member_size(frame, start)
-        count = count + 1
-        if size is None:
-            start = start + 1
-            continue
+    if 760 <= idaapi.IDA_SDK_VERSION < 900:
 
-        name = idc.get_member_name(frame, start)
-        start += size
+        class frame_members_iterator:
+            def __init__(self, f, max_count=10000):
+                self.frame = f
+                self.max_count = max_count
+                self.start = idc.get_first_member(f)
+                self.end = idc.get_last_member(f)
+                self.count = 0
 
-        if name in [" r", " s"]:
-            # Skip return address and base pointer
-            current = arguments
-            continue
-        arg_string += f" {name}"
-        current.append(name)
-    args_str = ", ".join(arguments)
-    if len(args_str) == 0:
-        args_str = "void"
-    return f"({args_str})"
+            def __iter__(self):
+                while self.start <= self.end and self.count <= self.max_count:
+                    size = idc.get_member_size(self.frame, self.start)
+                    self.count += 1
+
+                    if size is None:
+                        self.start += 1
+                        continue  # Skip invalid members
+
+                    name = idc.get_member_name(self.frame, self.start)
+                    self.start += size
+
+                    yield name
+
+        udt_data_iter = frame_members_iterator(frame)
+    else:
+        import operator
+
+        import ida_typeinf
+
+        tif = ida_typeinf.tinfo_t()
+        tif.get_type_by_tid(ea)
+        udt_data = ida_typeinf.udt_type_data_t()
+        if not tif.get_udt_details(udt_data):
+            return ""
+        udt_data_iter = map(operator.attrgetter("name"), udt_data)
+
+    arguments = [arg for arg in udt_data_iter if arg not in [" r", " s"]]
+    if len(arguments) == 0:
+        arguments = "void"
+    return f"({', '.join(arguments)})"
 
 
 def parse_function_type(ea: int, end: Optional[int] = None) -> str:
