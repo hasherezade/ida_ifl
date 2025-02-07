@@ -15,7 +15,7 @@ __AUTHOR__ = "hasherezade"
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
 PLUGIN_HOTKEY = "Ctrl-Alt-F"
-
+import string
 from typing import Any, List, Optional, Tuple, Union
 
 import ida_bytes
@@ -128,15 +128,10 @@ def va_to_rva(va: int) -> int:
 
 
 def _is_hex_str(s):
-    # skip prefix:
-    if s[:2] == "0x":
+    # Check if the string starts with "0x" or is a valid hex string
+    if s.startswith("0x"):
         s = s[2:]
-    # validate hex charset:
-    hex_digits = set("0123456789abcdefABCDEF")
-    for val in s:
-        if not (val in hex_digits):
-            return False
-    return True
+    return all(c in string.hexdigits for c in s)
 
 
 # Functions and args
