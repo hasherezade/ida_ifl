@@ -10,7 +10,7 @@
 """
 CC-BY: hasherezade, run via IDA Pro >= 8.0
 """
-__VERSION__ = "1.5"
+__VERSION__ = "1.5.1"
 __AUTHOR__ = "hasherezade"
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -996,15 +996,31 @@ class FunctionsListForm_t(PluginForm):
             func_name = fn1[0].strip()
         return func_name
 
+    def _getBitness(self):
+        if idaapi.IDA_SDK_VERSION >= 900:
+            if idaapi.inf_is_64bit():
+                return 64
+            elif idaapi.inf_is_32bit_exactly():
+                return 32
+        else:
+            info = idaapi.get_inf_structure()
+            if info.is_64bit():
+                return 64
+            elif info.is_32bit():
+                return 32
+        return None
+
     def _defineImportThunk(self, start, thunk_val):
         """If the binary has the Import Thunk filled, define it as a data chunk of appropriate size."""
 
-        info = idaapi.get_inf_structure()
-        if info.is_64bit():
+        bitness = self._getBitness()
+        if bitness is None:
+            return False
+        if bitness == 64:
             curr_val = idc.get_qword(start)
             if curr_val == thunk_val:
                 return ida_bytes.create_data(start, idaapi.FF_QWORD, 8, idaapi.BADADDR)
-        elif info.is_32bit():
+        elif bitness == 32:
             curr_val = ida_bytes.get_dword(start)
             if curr_val == thunk_val:
                 return ida_bytes.create_data(start, idaapi.FF_DWORD, 4, idaapi.BADADDR)
