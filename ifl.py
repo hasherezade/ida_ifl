@@ -187,8 +187,10 @@ def parse_function_args(ea: int) -> str:
 
     arguments = [arg for arg in udt_data_iter if arg not in [" r", " s"]]
     if len(arguments) == 0:
-        return ""    
-    return f"({', '.join(arguments)})"
+        args_str = "void"
+    else:
+        args_str = ", ".join(arguments)
+    return f"({args_str})"
 
 
 def parse_function_type(ea: int, end: Optional[int] = None) -> str:
