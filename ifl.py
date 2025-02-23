@@ -147,7 +147,7 @@ def parse_function_args(ea: int) -> str:
 
     if frame is None:
         return ""
-
+    
     if 760 <= idaapi.IDA_SDK_VERSION < 900:
 
         class frame_members_iterator:
@@ -171,7 +171,7 @@ def parse_function_args(ea: int) -> str:
                     self.start += size
 
                     yield name
-
+        skip_names = [" r", " s"]
         udt_data_iter = frame_members_iterator(frame)
     else:
         import operator
@@ -183,9 +183,10 @@ def parse_function_args(ea: int) -> str:
         udt_data = ida_typeinf.udt_type_data_t()
         if not tif.get_udt_details(udt_data):
             return ""
+        skip_names = ["__return_address", "__saved_registers"]
         udt_data_iter = map(operator.attrgetter("name"), udt_data)
 
-    arguments = [arg for arg in udt_data_iter if arg not in [" r", " s"]]
+    arguments = [arg for arg in udt_data_iter if arg not in skip_names]
     if len(arguments) == 0:
         args_str = "void"
     else:
