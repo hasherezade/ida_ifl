@@ -187,7 +187,7 @@ def parse_function_args(ea: int) -> str:
 
     arguments = [arg for arg in udt_data_iter if arg not in [" r", " s"]]
     if len(arguments) == 0:
-        arguments = "void"
+        return ""    
     return f"({', '.join(arguments)})"
 
 
@@ -269,7 +269,7 @@ def _getArgsDescription(ea: int) -> str:
 
 def _getArgsNum(ea: int) -> int:
     args = _getArgsDescription(ea)
-    if not args:
+    if not args or len(args) == 0:
         return 0
     delimiter = ","
     args_list = args.split(delimiter)
