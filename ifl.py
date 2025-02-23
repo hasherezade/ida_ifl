@@ -1222,6 +1222,9 @@ class FunctionsListForm_t(PluginForm):
     def OnCreate(self, form) -> None:
         """Called when the plugin form is created"""
 
+        QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+        QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+    
         # init data structures:
         self.funcMapper = FunctionsMapper_t()
         self.criterium_id = 0
@@ -1256,10 +1259,6 @@ class FunctionsListForm_t(PluginForm):
         self._setup_sorted_model(self.refs_view, self.refsto_model)
         self.refs_view.setColumnHidden(RefsTableModel_t.COL_TOADDR, True)
         self.refs_view.setWordWrap(False)
-
-        font = self.refs_view.font()
-        font.setPointSize(8)
-        self.refs_view.setFont(font)
 
         self.refsfrom_model = RefsTableModel_t(self.funcMapper.funcList, False)
         self.refsfrom_view = FunctionsView_t(
@@ -1317,8 +1316,6 @@ class FunctionsListForm_t(PluginForm):
         filter_layout.addWidget(self.filter_edit)
 
         filter_panel.setLayout(filter_layout)
-        self.filter_edit.setFixedHeight(20)
-        filter_panel.setFixedHeight(40)
         filter_panel.setAutoFillBackground(True)
 
         self.refs_label = QtWidgets.QLabel("Function")
@@ -1489,7 +1486,7 @@ class funclister_t(idaapi.plugin_t):
     )
     wanted_name = PLUGIN_NAME
     wanted_hotkey = ""
-
+    
     def init(self) -> None:
         idaapi.register_action(
             idaapi.action_desc_t(
