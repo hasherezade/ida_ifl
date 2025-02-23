@@ -10,7 +10,7 @@
 """
 CC-BY: hasherezade, run via IDA Pro >= 8.0
 """
-__VERSION__ = "1.5.1"
+__VERSION__ = "1.5.2"
 __AUTHOR__ = "hasherezade"
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
