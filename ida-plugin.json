@@ -1,0 +1,31 @@
+{
+  "IDAMetadataDescriptorVersion": 1,
+  "plugin": {
+    "name": "IFL",
+    "entryPoint": "ifl.py",
+    "version": "1.5.2",
+    "description": "Interactive Functions List with navigation and PE-sieve import support",
+    "license": "CC-BY-3.0",
+    "categories": [
+      "ui-ux-and-visualization",
+      "api-scripting-and-automation"
+    ],
+    "urls": {
+      "repository": "https://github.com/hasherezade/ida_ifl"
+    },
+    "authors": [{
+      "name": "hasherezade",
+      "email": "hasherezade@gmail.com"
+    }],
+    "keywords": [
+      "function-navigation",
+      "function-analysis",
+      "references",
+      "pe-sieve",
+      "interactive-ui",
+      "function-listing",
+      "import-export",
+      "malware-analysis"
+    ]
+  }
+}
