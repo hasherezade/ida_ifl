@@ -28,3 +28,5 @@ Dark theme:
 Light theme:
 
 ![](https://github.com/hasherezade/ida_ifl/blob/master/img/ida_ifl_default.png)
+
+📖 More info on [Wiki](https://github.com/hasherezade/ida_ifl/wiki)
