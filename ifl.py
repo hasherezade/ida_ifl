@@ -15,6 +15,8 @@ __AUTHOR__ = "hasherezade"
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
 PLUGIN_HOTKEY = "Ctrl-Alt-F"
+import dataclasses
+import functools
 import string
 from typing import Any, List, Optional, Tuple, Union
 
@@ -51,12 +53,66 @@ from idc import (
     get_type,
     set_color,
 )
-from PyQt5 import QtCore, QtGui, QtWidgets  # type: ignore
-from PyQt5.QtCore import QObject, pyqtSignal  # type: ignore
+
+@functools.total_ordering
+@dataclasses.dataclass(frozen=True)
+class IDAVersionInfo:
+    major: int
+    minor: int
+    sdk_version: int
+
+    def __eq__(self, other):
+        if isinstance(other, IDAVersionInfo):
+            return (self.major, self.minor) == (other.major, other.minor)
+        if isinstance(other, tuple):
+            return (self.major, self.minor) == tuple(other[:2])
+        return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, IDAVersionInfo):
+            return (self.major, self.minor) < (other.major, other.minor)
+        if isinstance(other, tuple):
+            return (self.major, self.minor) < tuple(other[:2])
+        return NotImplemented
+
+    @staticmethod
+    @functools.cache
+    def ida_version():
+        """
+        Returns an IDAVersionInfo instance for the current IDA kernel version.
+
+        The returned object supports comparison with tuples, e.g.:
+            if IDAVersionInfo.ida_version() >= (9, 2):
+                ...
+        """
+        version_str: str = idaapi.get_kernel_version()  # e.g. "9.1"
+        sdk_version: int = idaapi.IDA_SDK_VERSION
+        major, minor = map(int, version_str.split("."))
+        return IDAVersionInfo(major, minor, sdk_version)
+
+
+ida_version = IDAVersionInfo.ida_version
+
+if ida_version() >= (9, 2):
+    from PySide6 import QtCore, QtGui, QtWidgets
+    from PySide6.QtCore import QObject, Signal as pyqtSignal
+    QT_VERSION = 6
+else:
+    from PyQt5 import QtCore, QtGui, QtWidgets  # type: ignore
+    from PyQt5.QtCore import QObject, pyqtSignal  # type: ignore
+    QT_VERSION = 5
 
 VERSION_INFO = (
     f"IFL v{__VERSION__} - check for updates: https://github.com/hasherezade/ida_ifl"
 )
+
+# Qt5/Qt6 compatibility
+if QT_VERSION == 6:
+    BackgroundColorRole = QtCore.Qt.ItemDataRole.BackgroundRole
+    PaletteBackground = QtGui.QPalette.ColorRole.Window
+else:
+    BackgroundColorRole = QtCore.Qt.BackgroundColorRole
+    PaletteBackground = QtGui.QPalette.Background
 
 transp_l = 230
 light_theme = [
@@ -91,7 +147,7 @@ def get_bg_color():
     widget = ida_kernwin.PluginForm.FormToPyQtWidget(w)
     if not widget:
         return None
-    color = widget.palette().color(QtGui.QPalette.Background)
+    color = widget.palette().color(PaletteBackground)
     return color
 
 
@@ -499,7 +555,7 @@ class TableModel_t(QtCore.QAbstractTableModel):
             return self._displayData(row, col)
         elif role == QtCore.Qt.ToolTipRole:
             return self._displayToolTip(row, col)
-        elif role == QtCore.Qt.BackgroundColorRole:
+        elif role == BackgroundColorRole:
             return self._displayBackground(row, col)
         else:
             return None
@@ -669,7 +725,7 @@ class RefsTableModel_t(QtCore.QAbstractTableModel):
                 return self._getAddrToFollow(row, col)
         elif role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
             return self._displayData(row, col)
-        elif role == QtCore.Qt.BackgroundColorRole:
+        elif role == BackgroundColorRole:
             return self._displayBackground(row, col)
         else:
             return None
