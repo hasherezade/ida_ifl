@@ -101,7 +101,7 @@ if ida_version() >= (9, 2):
 else:
     from PyQt5 import QtCore, QtGui, QtWidgets  # type: ignore
     from PyQt5.QtCore import QObject, pyqtSignal  # type: ignore
-    from PySide2.QtCore import QRegExp, Qt
+    from PyQt5.QtCore import QRegExp, Qt
     QT_VERSION = 5
 
 VERSION_INFO = (
