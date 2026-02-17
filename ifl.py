@@ -10,7 +10,7 @@
 """
 CC-BY: hasherezade, run via IDA Pro >= 8.0
 """
-__VERSION__ = "1.5.2"
+__VERSION__ = "1.5.3"
 __AUTHOR__ = "hasherezade"
 
 PLUGIN_NAME = "IFL - Interactive Functions List"
@@ -96,10 +96,12 @@ ida_version = IDAVersionInfo.ida_version
 if ida_version() >= (9, 2):
     from PySide6 import QtCore, QtGui, QtWidgets
     from PySide6.QtCore import QObject, Signal as pyqtSignal
+    from PySide6.QtCore import QRegularExpression, Qt
     QT_VERSION = 6
 else:
     from PyQt5 import QtCore, QtGui, QtWidgets  # type: ignore
     from PyQt5.QtCore import QObject, pyqtSignal  # type: ignore
+    from PySide2.QtCore import QRegExp, Qt
     QT_VERSION = 5
 
 VERSION_INFO = (
@@ -1228,16 +1230,30 @@ class FunctionsListForm_t(PluginForm):
         self._update_ref_tabs(data)
         self._update_function_name(data)
 
-    def filterByColumn(self, col_num, str) -> None:
+    def filterByColumn(self, col_num, text) -> None:
         """Applies a filter defined by the string on data model."""
 
-        filter_type = QtCore.QRegExp.FixedString
-        sensitivity = QtCore.Qt.CaseInsensitive
+        # Determine if exact string or regex should be used
         if self.criterium_id != 0:
-            filter_type = QtCore.QRegExp.RegExp
-        self.addr_sorted_model.setFilterRegExp(
-            QtCore.QRegExp(str, sensitivity, filter_type)
-        )
+            use_regex = True
+        else:
+            use_regex = False
+        
+        if QT_VERSION == 6:
+            if use_regex:
+                regex = QRegularExpression(text)
+            else:
+                # For fixed string matching, escape special characters
+                regex = QRegularExpression(QRegularExpression.escape(text))
+            # Case-insensitive option
+            regex.setPatternOptions(QRegularExpression.CaseInsensitiveOption)
+            self.addr_sorted_model.setFilterRegularExpression(regex)
+        else:
+            filter_type = QRegExp.RegExp if use_regex else QRegExp.FixedString
+            regex = QRegExp(text, Qt.CaseInsensitive, filter_type)
+            self.addr_sorted_model.setFilterRegExp(regex)
+
+        # Apply the filter to the specified column
         self.addr_sorted_model.setFilterKeyColumn(col_num)
 
     def filterChanged(self) -> None:
