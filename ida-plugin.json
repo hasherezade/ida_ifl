@@ -3,7 +3,7 @@
   "plugin": {
     "name": "IFL",
     "entryPoint": "ifl.py",
-    "version": "1.5.2",
+    "version": "1.5.3",
     "description": "Interactive Functions List with navigation and PE-sieve import support",
     "license": "CC-BY-3.0",
     "categories": [
