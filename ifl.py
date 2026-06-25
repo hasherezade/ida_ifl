@@ -1362,7 +1362,7 @@ class FunctionsListForm_t(PluginForm):
 
         # Create a Tab widget for references:
         self.refs_tabs = QtWidgets.QTabWidget()
-        self.refs_tabs.insertTab(0, self.refs_view, "Is refered by")
+        self.refs_tabs.insertTab(0, self.refs_view, "Is referred by")
         self.refs_tabs.insertTab(1, self.refsfrom_view, "Refers to")
 
         # Create filter
